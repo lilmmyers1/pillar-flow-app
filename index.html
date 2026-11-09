@@ -140,6 +140,14 @@ textarea.inp{min-height:76px;resize:vertical}
 .chipbar > *{pointer-events:auto}
 .chip{background:color-mix(in srgb,var(--surface) 92%,transparent);border:1px solid var(--line);border-radius:999px;padding:7px 11px;font:600 12px/1 var(--f-ui);display:inline-flex;align-items:center;gap:7px;min-height:36px;backdrop-filter:blur(6px);color:var(--ink)}
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+/* The GPS chip reports state rather than acting as a mode switch, so it takes
+   its colour from how good the fix is, not from being "pressed". */
+#cLocate{font-family:var(--f-mono);font-size:11.5px}
+#cLocate[data-s="ok"]{background:var(--surface);border-color:var(--st-set);color:var(--st-set)}
+#cLocate[data-s="weak"]{background:var(--surface);border-color:var(--st-toset);color:var(--st-toset)}
+#cLocate[data-s="wait"]{background:var(--surface);border-color:var(--st-toset);color:var(--st-toset)}
+#cLocate[data-s="err"]{background:var(--surface);border-color:var(--st-missing);color:var(--st-missing)}
+#cLocate[data-s="off"]{background:var(--surface);border-color:var(--line);color:var(--muted)}
 /* Hidden on a phone, where it would eat a band of the plan — the crew knows
    what they set. Shown from 900px, where the plan is being reviewed. */
 .legend{display:none;flex-wrap:wrap;gap:10px;align-items:center;
@@ -301,7 +309,7 @@ h2.sec:first-child{margin-top:0}
         <div class="chipbar gut">
           <button class="chip" id="cPlant" type="button" aria-pressed="false">Plant</button>
           <button class="chip" id="cWho" type="button" hidden>Who?</button>
-          <button class="chip" id="cLocate" type="button" aria-pressed="false">Locate</button>
+          <button class="chip" id="cLocate" type="button" aria-pressed="false">GPS…</button>
           <button class="chip" id="cSnap" type="button" aria-pressed="true">Snap</button>
           <button class="chip" id="cFit" type="button">Fit</button>
           <button class="chip" id="cLayers" type="button">Layers</button>
@@ -452,7 +460,7 @@ var SB = {
 };
 // Filled in by build.sh. Shown on the Job tab so you can tell which version a
 // phone is actually running.
-var BUILD = "20261109-1539-abb277b";
+var BUILD = "20261109-1551-eeac96f";
 
 // Every corner on the drawing needs a CP; the crew plants them line by line.
 // "to_set" is the corner as it stands before they get there — pegged, no pillar.
@@ -1132,13 +1140,29 @@ function plantProgress(){
   }
   if(state.locating){
     if(!state.me) parts.push("Waiting for GPS…");
+    else if(state.gpsStale) parts.push("GPS signal lost — last fix "+Math.round((Date.now()-state.me.at)/1000)+" s ago");
     else if(state.nearest) parts.push("Next "+(state.nearest.p.pillar_no||"corner")+": "+
                                       fmtDist(state.nearest.d)+" "+state.nearest.dir);
-    else parts.push("No corners left needing a CP");
-    if(state.me && state.me.acc>15) parts.push("GPS ±"+Math.round(state.me.acc)+" m");
+    else if(tally().all) parts.push("No corners left needing a CP");
+    if(state.me && !state.gpsStale && state.me.acc>15) parts.push("GPS ±"+Math.round(state.me.acc)+" m");
+  } else if(state.gpsDenied){
+    parts.push("Location blocked — allow it in the browser settings");
   }
   h.textContent = parts.length ? parts.join(" · ") : "Tap a corner to place a pillar";
   h.style.cursor = state.nearest ? "pointer" : "";
+
+  // The chip always says what the GPS is doing, so it never looks live when it isn't.
+  var chip=$("cLocate");
+  if(chip){
+    chip.textContent =
+      state.gpsDenied ? "GPS blocked" :
+      !state.locating ? "GPS off" :
+      !state.me ? "GPS…" :
+      state.gpsStale ? "GPS lost" :
+      "GPS ±"+Math.round(state.me.acc)+" m";
+    chip.dataset.s = state.gpsDenied ? "err" : !state.locating ? "off" :
+      (!state.me || state.gpsStale) ? "wait" : (state.me.acc>15 ? "weak" : "ok");
+  }
 }
 function fmtDist(m){ return m<1000 ? Math.round(m)+" m" : (m/1000).toFixed(2)+" km"; }
 function compass(dx,dy){
@@ -1161,38 +1185,110 @@ function guideNearest(){
     dir:compass(best.easting-state.me.e, best.northing-state.me.n) } : null;
   plantProgress();
 }
-function startLocate(){
-  if(!navigator.geolocation){ toast("This phone has no GPS available"); return; }
-  if(!window.isSecureContext){ toast("Location only works on the https address"); return; }
-  state.locating=true;
-  $("cLocate").setAttribute("aria-pressed","true");
-  plantProgress();
-  var first=true, warned=false;
+/* GPS is on whenever a job is open. The crew should never have to remember to
+   switch it on; the chip only exists to turn it off to save battery, and that
+   choice is remembered. */
+var GPS_STALE_MS = 20000;
+var gpsFirst=true, gpsWarned=false, gpsTimer=null, wakeLock=null;
+
+function gpsWanted(){ return ls("pf.gps")!=="off"; }
+
+// Called whenever a job opens or the app comes back. Does nothing if GPS is
+// already running or the crew turned it off.
+function ensureGps(){
+  if(state.locating || !gpsWanted()) return;
+  startLocate({auto:true});
+}
+
+function watchGps(){
+  gpsFirst = !state.me;
   state.watchId=navigator.geolocation.watchPosition(function(pos){
     var c=pos.coords, u=toUTM(c.latitude, c.longitude, 16);
     // The fix is WGS84. Shift it the same way as the imagery so the dot, the
     // imagery and the drawing all agree.
     state.me={ e:u.e+(state.satDE||0), n:u.n+(state.satDN||0), acc:c.accuracy, at:Date.now() };
-    if(first){
-      first=false;
+    state.gpsStale=false; state.gpsDenied=false;
+    if(gpsFirst){
+      gpsFirst=false;
       var s=W2S(state.me.e, state.me.n);
       if(s[0]<0||s[0]>cw||s[1]<0||s[1]>ch) centerOn({easting:state.me.e, northing:state.me.n});
     }
     guideNearest(); requestDraw();
   }, function(err){
     if(err.code===1){
-      stopLocate();
+      // Blocked in the browser. Stop trying; the chip says so and a tap retries.
+      stopLocate({keepPref:true});
+      state.gpsDenied=true; plantProgress();
       toast("Location is blocked — allow it for this site in the browser settings");
-    } else if(!warned){
-      warned=true; toast("Still waiting for a GPS fix — open sky helps");
+    } else if(!gpsWarned){
+      gpsWarned=true; toast("Still waiting for a GPS fix — open sky helps");
     }
-  }, { enableHighAccuracy:true, maximumAge:2000, timeout:30000 });
+  }, { enableHighAccuracy:true, maximumAge:0, timeout:30000 });
 }
-function stopLocate(){
+
+function startLocate(opts){
+  opts=opts||{};
+  if(state.locating) return;
+  if(!navigator.geolocation){
+    if(!opts.auto) toast("This phone has no GPS available");
+    return;
+  }
+  if(!window.isSecureContext){
+    if(!opts.auto) toast("Location only works on the https address");
+    return;
+  }
+  if(!opts.auto) ls("pf.gps","on");
+  state.locating=true; state.gpsDenied=false; state.gpsStale=false; gpsWarned=false;
+  $("cLocate").setAttribute("aria-pressed","true");
+  watchGps();
+  holdScreenOn();
+  // A fix that stops arriving (tunnel of trees, phone dozed) must not look live.
+  clearInterval(gpsTimer);
+  gpsTimer=setInterval(function(){
+    if(!state.locating || !state.me) return;
+    var stale = Date.now()-state.me.at > GPS_STALE_MS;
+    if(stale!==state.gpsStale){ state.gpsStale=stale; plantProgress(); requestDraw(); }
+  }, 4000);
+  plantProgress();
+}
+
+// opts.keepPref: stopped by the system (blocked, signed out), not by the crew,
+// so the "GPS on" preference stays and it comes back on its own next time.
+function stopLocate(opts){
+  opts=opts||{};
   if(state.watchId!=null && navigator.geolocation) navigator.geolocation.clearWatch(state.watchId);
-  state.watchId=null; state.locating=false; state.me=null; state.nearest=null;
+  clearInterval(gpsTimer); gpsTimer=null;
+  releaseScreen();
+  state.watchId=null; state.locating=false; state.me=null; state.nearest=null; state.gpsStale=false;
+  if(!opts.keepPref) ls("pf.gps","off");
   var b=$("cLocate"); if(b) b.setAttribute("aria-pressed","false");
   plantProgress(); requestDraw();
+}
+
+// A phone that dozes stops giving location. Keep the screen awake while GPS is
+// on, and take the lock back each time the app returns to the front, because
+// the browser drops it whenever the page is hidden.
+function holdScreenOn(){
+  if(!("wakeLock" in navigator) || document.visibilityState!=="visible" || wakeLock) return;
+  navigator.wakeLock.request("screen").then(function(l){
+    wakeLock=l;
+    l.addEventListener("release", function(){ if(wakeLock===l) wakeLock=null; });
+  }).catch(function(){});
+}
+function releaseScreen(){
+  if(wakeLock){ try{ wakeLock.release(); }catch(e){} wakeLock=null; }
+}
+// Back to the front: the watch may have been paused by the browser, so restart
+// it rather than trust it.
+function resumeGps(){
+  if(document.visibilityState!=="visible") return;
+  if(state.locating){
+    if(state.watchId!=null) navigator.geolocation.clearWatch(state.watchId);
+    watchGps();
+    holdScreenOn();
+  } else {
+    ensureGps();
+  }
 }
 function drawMe(){
   if(!state.me) return;
@@ -2445,6 +2541,8 @@ function openJob(j){
     fitView();
     loadMaterial();
     loadMe().then(loadCrew);
+    ensureGps();                      // GPS comes on with the job, no button to find
+    plantProgress();                  // and the chip reads true even if it was left off
     syncNow();
     startPolling();
   });
@@ -2941,7 +3039,12 @@ function wire(){
     setPlant(true);
   };
   $("cWho").onclick=function(){ crewSheet(); };
-  $("cLocate").onclick=function(){ if(state.locating) stopLocate(); else startLocate(); };
+  // On by default; a tap turns it off (saves battery) and the choice is kept.
+  // A tap when it is blocked or off tries again.
+  $("cLocate").onclick=function(){
+    if(state.locating){ stopLocate(); toast("GPS off — tap again to turn it back on"); }
+    else startLocate();
+  };
   // Tapping the guide walks the plan to the next corner.
   $("hint").onclick=function(){
     if(!state.nearest) return;
@@ -2974,7 +3077,7 @@ function wire(){
   $("signOut").onclick=function(){
     auth.out(); state.job=null; state.points=[]; state.plan=null;
     state.isAdmin=false; state.myEmployeeId=null; state.planter=null; applyRole();
-    stopLocate();
+    stopLocate({keepPref:true});      // signing out is not the crew choosing GPS off
     try{ localStorage.removeItem("pf.job"); }catch(e){}
     showAuth();
   };
@@ -2983,7 +3086,7 @@ function wire(){
   window.addEventListener("online", function(){ updateLamp(); syncNow(); });
   window.addEventListener("offline", updateLamp);
   document.addEventListener("visibilitychange", function(){
-    if(document.visibilityState==="visible") syncNow();
+    if(document.visibilityState==="visible"){ syncNow(); resumeGps(); }
   });
 }
 
