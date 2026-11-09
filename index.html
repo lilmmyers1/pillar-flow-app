@@ -611,6 +611,12 @@ function storageUpload(path, blob, type){
     });
   }).then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error(t); }); return true; });
 }
+function storageDownload(path){
+  return auth.token().then(function(t){
+    return fetch(SB.url+"/storage/v1/object/pillars/"+path,
+                 { headers:{ apikey:SB.key, Authorization:"Bearer "+t } });
+  }).then(function(r){ return r.ok ? r.text() : null; });
+}
 function storageSign(path){
   return auth.token().then(function(t){
     return fetch(SB.url+"/storage/v1/object/sign/pillars/"+path,{
@@ -707,7 +713,15 @@ function utmToMercAffine(){
     if(!withXY.length) return null;
     ce=withXY[0].easting; cn=withXY[0].northing;
   }
-  var z=state.satZone||16;
+  // Belize is UTM zone 16 north, and that is the only place this app works.
+  var z=16;
+  var at=fromUTM(ce,cn,z,false);
+  state.satWhere=at;
+  if(!(at.lat>15.5 && at.lat<18.7 && at.lon>-89.5 && at.lon<-87.0)){
+    state.satOffBelize=true;            // drawing is not in Belize UTM 16N
+    return null;
+  }
+  state.satOffBelize=false;
   function m(e,n){ var ll=fromUTM(e,n,z,false); return mercFromLonLat(ll.lon,ll.lat); }
   var o=m(ce,cn), ue=m(ce+1000,cn), un=m(ce,cn+1000);
   var a=(ue[0]-o[0])/1000, b=(ue[1]-o[1])/1000;
@@ -2136,6 +2150,17 @@ function openJob(j){
 
     if(plan && plan.text){
       try{ state.plan=parseDXF(plan.text); $("planEmpty").hidden=true; }catch(e){}
+    } else {
+      // Nothing cached on this device — pull the job's drawing from the office.
+      fetchPlanFromCloud(j).then(function(got){
+        if(!got || !state.job || state.job.id!==j.id) return;   // job moved on
+        try{
+          state.plan=parseDXF(got.text);
+          $("planEmpty").hidden=true;
+          state.viewFitted=false; fitView(); requestDraw();
+          toast("Loaded "+got.name+" from the office");
+        }catch(e){ toast("The job's drawing would not open: "+String(e.message||e)); }
+      });
     }
 
     showTab("list");
@@ -2405,12 +2430,20 @@ function alignSheet(){
     op.oninput=function(){ state.satOpacity=parseFloat(op.value); saveSatSettings(); requestDraw(); };
     field(body,"Brightness",op);
 
-    var zI=input("fZone","number",state.satZone,{step:"1",min:"1",max:"60",inputmode:"numeric"});
-    zI.onchange=function(){
-      var z=parseInt(zI.value,10);
-      if(z>=1&&z<=60){ state.satZone=z; state.satAffine=null; saveSatSettings(); requestDraw(); }
-    };
-    field(body,"UTM zone of the drawing",zI);
+    var wh=el("div","field");
+    wh.appendChild(el("span","lbl","Where this drawing sits"));
+    var w=state.satWhere;
+    var whTxt = w
+      ? fmt(w.lat,5)+" , "+fmt(w.lon,5)+(state.satOffBelize ? "  — not Belize" : "  — Belize, UTM 16N")
+      : "Load the job's DXF first";
+    var whP=el("p",null,whTxt);
+    whP.style.cssText="margin:0;font-family:var(--f-mono);font-size:12.5px;"+
+      (state.satOffBelize?"color:var(--st-missing)":"color:var(--muted)");
+    wh.appendChild(whP);
+    body.appendChild(wh);
+    if(state.satOffBelize){
+      body.appendChild(el("p","note","Imagery is placed as Belize UTM zone 16 north. These coordinates fall outside Belize, so nothing is drawn rather than putting the job in the wrong country."));
+    }
 
     var mz=input("fMaxZ","number",state.satMaxZ,{step:"1",min:"10",max:"20",inputmode:"numeric"});
     mz.onchange=function(){
@@ -2473,6 +2506,23 @@ function prefetchTiles(btn){
     btn.textContent="Download imagery for this plan";
     toast(failed? (done-failed)+" tiles stored, "+failed+" failed" : done+" tiles stored for offline");
   });
+}
+
+// The drawing lives in the office too. Without this a new phone, or the PC,
+// opens the job and sees nothing to work on even though the DXF was uploaded.
+function fetchPlanFromCloud(job){
+  if(!navigator.onLine || !auth.session) return Promise.resolve(null);
+  return rest("pillar_plans?job_id=eq."+job.id+"&order=created_at.desc&limit=1")
+    .then(function(rows){
+      if(!rows || !rows.length || !rows[0].dxf_path) return null;
+      var row=rows[0];
+      return storageDownload(row.dxf_path).then(function(text){
+        if(!text) return null;
+        idbPut("plans", { id:row.id, job_id:job.id, name:row.name, text:text, at:nowISO() });
+        return { name:row.name, text:text };
+      });
+    })
+    .catch(function(){ return null; });
 }
 
 function layerSheet(){
@@ -2570,7 +2620,15 @@ function wire(){
     $("cAlign").hidden=!state.sat;
     state.satAffine=null;
     saveSatSettings(); requestDraw();
-    if(state.sat && !navigator.onLine) toast("Offline — only imagery already loaded will show");
+    if(!state.sat) return;
+    if(!state.plan && !state.points.some(function(p){ return !p.deleted && p.easting!=null; })){
+      toast("Load the job's DXF first — imagery is placed from its coordinates");
+    } else if(state.satOffBelize){
+      var w=state.satWhere;
+      toast("These coordinates are not Belize UTM 16N"+(w? " (they land at "+fmt(w.lat,3)+", "+fmt(w.lon,3)+")" : ""));
+    } else if(!navigator.onLine){
+      toast("Offline — only imagery already downloaded will show");
+    }
   };
   $("cAlign").onclick=alignSheet;
   $("cPlant").onclick=function(){
