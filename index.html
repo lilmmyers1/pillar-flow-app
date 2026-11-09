@@ -937,16 +937,12 @@ function convert(recs, blocks, out, xf, depth){
       bump(pp[0],pp[1]); out.snap.push(pp[0],pp[1]);
     }
     else if(t==="TEXT" || t==="MTEXT"){
-      var tp=P(gn(r,10,0),gn(r,20,0));
-      var h=gn(r,40,2.5); if(t==="MTEXT") h=gn(r,40,2.5);
-      var s=(g1(r,1,"")||"");
-      if(r.g[3]) s = r.g[3].join("")+s;
-      s = s.replace(/\\[A-Za-z][^;]*;/g,"").replace(/[{}]/g,"").trim();
-      if(s){
-        out.items.push({k:"t", x:tp[0], y:tp[1], h:h, rot:gn(r,50,0)*Math.PI/180, s:s, layer:layer, ci:ci,
-                        bb:[tp[0], tp[1], tp[0]+h*s.length*0.7, tp[1]+h]});
-        bump(tp[0],tp[1]);
-      }
+      // Deliberately not imported. A survey sheet carries bearings, distances,
+      // lot numbers, notes and a title block; on the plan that buries the
+      // corners you are trying to hit. Title-block text also sits far from the
+      // parcel, which would stretch the drawing extent and wreck zoom-to-fit.
+      out.textSkipped=(out.textSkipped||0)+1;
+      continue;
     }
     else if(t==="SOLID" || t==="3DFACE"){
       var sp=[];
@@ -2190,7 +2186,8 @@ function pickDXF(){
       idbPut("plans",{id:uuid(), job_id:state.job.id, name:f.name, text:txt, at:nowISO()});
       state.viewFitted=false;
       showTab("plan"); fitView();
-      toast(f.name+" — "+P.items.length.toLocaleString()+" entities");
+      toast(f.name+" — "+P.items.length.toLocaleString()+" lines"+
+            (P.textSkipped? ", "+P.textSkipped.toLocaleString()+" labels left out" : ""));
       uploadPlan(f.name, txt, P);
     });
   };
