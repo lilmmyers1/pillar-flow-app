@@ -18,7 +18,7 @@
   --ink:#15181b; --muted:#596069; --faint:#8a9199;
   --accent:#c23b22; --accent-soft:#f7e2dd; --on-accent:#ffffff;
   --st-set:#2d7a4f; --st-found:#1f6aa8; --st-toset:#8a6512; --st-rebuilt:#0f6b72; --st-missing:#b0291c;
-  --plan-bg:#fbfbfa; --plan-ink:#2b3238; --plan-grid:#e4e7e8;
+  --plan-bg:#fbfbfa; --plan-ink:#000000; --plan-halo:#ffffff; --plan-grid:#e4e7e8; --me:#1a73e8;
   --shadow:0 1px 2px rgba(21,24,27,.07), 0 8px 24px -12px rgba(21,24,27,.22);
   --f-ui:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --f-cond:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
@@ -32,7 +32,7 @@
   --ink:#e7ecef; --muted:#98a3ab; --faint:#6b757c;
   --accent:#f0a830; --accent-soft:#2e2411; --on-accent:#141414;
   --st-set:#4cb97a; --st-found:#58a8e8; --st-toset:#d6a53a; --st-rebuilt:#46b9c2; --st-missing:#ef6a5c;
-  --plan-bg:#0a0d10; --plan-ink:#9fd4e0; --plan-grid:#161d23;
+  --plan-bg:#0a0d10; --plan-ink:#9fd4e0; --plan-halo:#000000; --plan-grid:#161d23; --me:#5ea2ff;
   --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 30px -12px rgba(0,0,0,.75);
   --r:5px;
   --titleblock:1px solid var(--line);
@@ -44,7 +44,7 @@
   --ink:#e7ecef; --muted:#98a3ab; --faint:#6b757c;
   --accent:#f0a830; --accent-soft:#2e2411; --on-accent:#141414;
   --st-set:#4cb97a; --st-found:#58a8e8; --st-toset:#d6a53a; --st-rebuilt:#46b9c2; --st-missing:#ef6a5c;
-  --plan-bg:#0a0d10; --plan-ink:#9fd4e0; --plan-grid:#161d23;
+  --plan-bg:#0a0d10; --plan-ink:#9fd4e0; --plan-halo:#000000; --plan-grid:#161d23; --me:#5ea2ff;
   --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 30px -12px rgba(0,0,0,.75);
   --r:5px;
   --titleblock:1px solid var(--line);
@@ -177,6 +177,12 @@ textarea.inp{min-height:76px;resize:vertical}
 .sheet footer .btn{flex:1}
 .x{border:0;background:var(--surface-2);border-radius:8px;width:34px;height:34px;display:grid;place-items:center;font-size:18px;color:var(--muted);flex:none}
 
+#updateBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));
+  z-index:70;display:flex;align-items:center;gap:12px;background:var(--accent);color:var(--on-accent);
+  border-radius:var(--r);padding:8px 8px 8px 14px;box-shadow:var(--shadow);font-size:13.5px;font-weight:600;
+  max-width:calc(100% - 24px)}
+#updateBar button{border:0;border-radius:calc(var(--r) - 2px);padding:7px 12px;font-weight:700;
+  background:color-mix(in srgb,var(--on-accent) 22%,transparent);color:inherit;flex:none}
 #toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(74px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:999px;font-size:13.5px;font-weight:500;z-index:60;box-shadow:var(--shadow);max-width:min(90vw,440px);text-align:center}
 
 .photo{width:100%;border-radius:9px;border:1px solid var(--line);display:block;aspect-ratio:4/3;object-fit:cover;background:var(--surface-2)}
@@ -294,6 +300,8 @@ h2.sec:first-child{margin-top:0}
         <canvas id="cv"></canvas>
         <div class="chipbar gut">
           <button class="chip" id="cPlant" type="button" aria-pressed="false">Plant</button>
+          <button class="chip" id="cWho" type="button" hidden>Who?</button>
+          <button class="chip" id="cLocate" type="button" aria-pressed="false">Locate</button>
           <button class="chip" id="cSnap" type="button" aria-pressed="true">Snap</button>
           <button class="chip" id="cFit" type="button">Fit</button>
           <button class="chip" id="cLayers" type="button">Layers</button>
@@ -362,16 +370,22 @@ h2.sec:first-child{margin-top:0}
           <dl id="dayBreak" style="margin:0"></dl>
         </div>
 
+        <h2 class="sec">Planted by</h2>
+        <div class="card" style="padding:14px">
+          <dl id="whoBreak" style="margin:0"></dl>
+        </div>
+
         <h2 class="sec">Cost</h2>
         <div class="card" style="padding:14px">
           <div class="field" style="margin-bottom:10px">
             <label class="lbl" for="unitCost">Cost per pillar (BZD)</label>
             <input class="inp mono" id="unitCost" type="number" step="0.01" min="0" inputmode="decimal">
-            <p class="note">From the <b>concrete pillar</b> material in your database. Changing it here updates that rate for everyone.</p>
+            <p class="note" id="rateNote" hidden>From the <b>concrete pillar</b> material in your database. Changing it here changes it for everyone.</p>
           </div>
           <div class="total"><span>Pillars set &times; rate</span><b class="mono" id="costTotal">$0.00</b></div>
           <p class="note" id="costNote">Only pillars marked <b>Set</b> or <b>Rebuilt</b> are counted as used.</p>
-          <button class="btn wide" id="postCost" type="button" style="margin-top:12px">Post to job costs</button>
+          <button class="btn wide" id="postCost" type="button" style="margin-top:12px" hidden>Post to job costs</button>
+          <p class="note" id="adminNote">The rate and posting costs to the job are set at the office by an admin.</p>
           <p class="note" id="postedNote" hidden></p>
         </div>
 
@@ -388,6 +402,7 @@ h2.sec:first-child{margin-top:0}
             <div class="kv"><dt>Signed in</dt><dd id="kUser" style="font-family:var(--f-ui);font-weight:600">—</dd></div>
             <div class="kv"><dt>Waiting to sync</dt><dd id="kPending">0</dd></div>
             <div class="kv"><dt>Last synced</dt><dd id="kLast" style="font-family:var(--f-ui);font-weight:600">Never</dd></div>
+            <div class="kv"><dt>App version</dt><dd id="kBuild" style="font-size:11.5px">—</dd></div>
           </dl>
           <div style="display:flex;gap:8px;margin-top:12px">
             <button class="btn" id="syncBtn" type="button" style="flex:1">Sync now</button>
@@ -419,6 +434,10 @@ h2.sec:first-child{margin-top:0}
 <input type="file" id="csvPick" accept=".csv,.txt" hidden>
 <input type="file" id="photoPick" accept="image/*" capture="environment" hidden>
 <div id="toast" hidden></div>
+<div id="updateBar" hidden role="status">
+  <span>A new version of Pillar Flow is ready.</span>
+  <button type="button" id="updateGo">Reload</button>
+</div>
 
 <script>
 (function(){
@@ -431,6 +450,9 @@ var SB = {
   url: "https://ingmeiuhlgmjbhnrkxou.supabase.co",
   key: "sb_publishable_Sz69BR0AAqaKktcaUWoK-w_FyXld7ut"
 };
+// Filled in by build.sh. Shown on the Job tab so you can tell which version a
+// phone is actually running.
+var BUILD = "20261109-1539-abb277b";
 
 // Every corner on the drawing needs a CP; the crew plants them line by line.
 // "to_set" is the corner as it stands before they get there — pegged, no pillar.
@@ -454,6 +476,8 @@ var state = {
   tab:"list", filter:"all", typeFilter:"all", q:"", snap:true, hiddenLayers:{},
   sat:false, satAffine:null, satDE:0, satDN:0, satOpacity:1, satZone:16, satMaxZ:18,
   plantMode:false, crew:null,
+  isAdmin:false, myEmployeeId:null, crewList:[], planter:null,
+  locating:false, me:null, watchId:null,
   view:{s:1,tx:0,ty:0}, viewFitted:false, sel:null, moveId:null,
   unitCost:5, materialId:null, lastSync:null, syncing:false, dbReady:true,
   device: null
@@ -471,6 +495,31 @@ function uuid(){
   });
 }
 function nowISO(){ return new Date().toISOString(); }
+
+// A 128-bit string hash (cyrb128). Not for security — for stable ids.
+function cyrb128(str){
+  var h1=1779033703, h2=3144134277, h3=1013904242, h4=2773480762;
+  for(var i=0, k; i<str.length; i++){
+    k=str.charCodeAt(i);
+    h1=h2^Math.imul(h1^k,597399067);  h2=h3^Math.imul(h2^k,2869860233);
+    h3=h4^Math.imul(h3^k,951274213);  h4=h1^Math.imul(h4^k,2716044179);
+  }
+  h1=Math.imul(h3^(h1>>>18),597399067); h2=Math.imul(h4^(h2>>>22),2869860233);
+  h3=Math.imul(h1^(h3>>>17),951274213); h4=Math.imul(h2^(h4>>>19),2716044179);
+  h1^=(h2^h3^h4); h2^=h1; h3^=h1; h4^=h1;
+  return [h1>>>0, h2>>>0, h3>>>0, h4>>>0];
+}
+// The same corner of the same job always gets the same id, on any phone. Two
+// crews placing corners from the same drawing therefore make one pillar per
+// corner between them, not two. Snapped corners come from the same DXF vertex,
+// so their coordinates match exactly.
+function cornerId(jobId, e, n){
+  var hex=cyrb128(jobId+"|"+e.toFixed(3)+"|"+n.toFixed(3)).map(function(x){
+    return ("00000000"+x.toString(16)).slice(-8);
+  }).join("");
+  return hex.slice(0,8)+"-"+hex.slice(8,12)+"-5"+hex.slice(13,16)+"-"+
+         ((parseInt(hex.charAt(16),16)&3)|8).toString(16)+hex.slice(17,20)+"-"+hex.slice(20,32);
+}
 function today(){ var d=new Date(); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function num(v){ var n=parseFloat(v); return isFinite(n)?n:null; }
 // "2026-11-04" -> "4 Nov", or "4 Nov 25" when it is not this year.
@@ -1016,7 +1065,6 @@ function findSnap(P, wx, wy, radius){
    Plan canvas
    ======================================================================== */
 var cv, ctx, cw=0, ch=0, dpr=1, rafPending=false;
-var ACI = {1:"#E04040",2:"#C9A227",3:"#2E9E4F",4:"#2BA3AD",5:"#3A6FD0",6:"#B45BC4",8:"#808080",9:"#A9B2B5"};
 
 function setupCanvas(){
   cv=$("cv"); ctx=cv.getContext("2d");
@@ -1067,12 +1115,154 @@ function fitView(){
   state.viewFitted=true;
   requestDraw();
 }
-// Running tally while the crew works a line, shown where the hint normally sits.
+// The bar along the bottom of the plan: running tally while the crew works a
+// line, and — with Locate on — how far and which way to the next corner.
 function plantProgress(){
   var h=$("hint"); if(!h) return;
-  if(!state.plantMode){ h.textContent="Tap a corner to place a pillar"; return; }
-  var t=tally();
-  h.textContent=(t.set+t.rebuilt)+" of "+t.all+" planted · "+t.to_set+" to go";
+  var who=$("cWho");
+  if(who){
+    who.hidden=!state.plantMode;
+    who.textContent = state.planter ? state.planter.name : "Who?";
+  }
+  var parts=[];
+  if(state.plantMode){
+    var t=tally();
+    parts.push((t.set+t.rebuilt)+" of "+t.all+" planted");
+    if(!state.locating) parts.push(t.to_set+" to go");
+  }
+  if(state.locating){
+    if(!state.me) parts.push("Waiting for GPS…");
+    else if(state.nearest) parts.push("Next "+(state.nearest.p.pillar_no||"corner")+": "+
+                                      fmtDist(state.nearest.d)+" "+state.nearest.dir);
+    else parts.push("No corners left needing a CP");
+    if(state.me && state.me.acc>15) parts.push("GPS ±"+Math.round(state.me.acc)+" m");
+  }
+  h.textContent = parts.length ? parts.join(" · ") : "Tap a corner to place a pillar";
+  h.style.cursor = state.nearest ? "pointer" : "";
+}
+function fmtDist(m){ return m<1000 ? Math.round(m)+" m" : (m/1000).toFixed(2)+" km"; }
+function compass(dx,dy){
+  var a=(Math.atan2(dx,dy)*180/Math.PI+360)%360;
+  return ["N","NE","E","SE","S","SW","W","NW"][Math.round(a/45)%8];
+}
+
+/* ---- where am I: GPS on the plan -------------------------------------- */
+
+// The closest corner still needing a CP, from where the phone is standing.
+function guideNearest(){
+  if(!state.me){ state.nearest=null; plantProgress(); return; }
+  var best=null, bd=Infinity;
+  state.points.forEach(function(p){
+    if(p.deleted || p.status!=="to_set" || p.easting==null) return;
+    var d=Math.hypot(p.easting-state.me.e, p.northing-state.me.n);
+    if(d<bd){ bd=d; best=p; }
+  });
+  state.nearest = best ? { p:best, d:bd,
+    dir:compass(best.easting-state.me.e, best.northing-state.me.n) } : null;
+  plantProgress();
+}
+function startLocate(){
+  if(!navigator.geolocation){ toast("This phone has no GPS available"); return; }
+  if(!window.isSecureContext){ toast("Location only works on the https address"); return; }
+  state.locating=true;
+  $("cLocate").setAttribute("aria-pressed","true");
+  plantProgress();
+  var first=true, warned=false;
+  state.watchId=navigator.geolocation.watchPosition(function(pos){
+    var c=pos.coords, u=toUTM(c.latitude, c.longitude, 16);
+    // The fix is WGS84. Shift it the same way as the imagery so the dot, the
+    // imagery and the drawing all agree.
+    state.me={ e:u.e+(state.satDE||0), n:u.n+(state.satDN||0), acc:c.accuracy, at:Date.now() };
+    if(first){
+      first=false;
+      var s=W2S(state.me.e, state.me.n);
+      if(s[0]<0||s[0]>cw||s[1]<0||s[1]>ch) centerOn({easting:state.me.e, northing:state.me.n});
+    }
+    guideNearest(); requestDraw();
+  }, function(err){
+    if(err.code===1){
+      stopLocate();
+      toast("Location is blocked — allow it for this site in the browser settings");
+    } else if(!warned){
+      warned=true; toast("Still waiting for a GPS fix — open sky helps");
+    }
+  }, { enableHighAccuracy:true, maximumAge:2000, timeout:30000 });
+}
+function stopLocate(){
+  if(state.watchId!=null && navigator.geolocation) navigator.geolocation.clearWatch(state.watchId);
+  state.watchId=null; state.locating=false; state.me=null; state.nearest=null;
+  var b=$("cLocate"); if(b) b.setAttribute("aria-pressed","false");
+  plantProgress(); requestDraw();
+}
+function drawMe(){
+  if(!state.me) return;
+  var m=W2S(state.me.e, state.me.n), col=css("--me");
+  var r=state.me.acc*state.view.s;
+  ctx.save(); ctx.setLineDash([]);
+  if(r>8){                                   // how sure the phone is
+    ctx.beginPath(); ctx.arc(m[0],m[1],Math.min(r,3000),0,6.3);
+    ctx.globalAlpha=0.13; ctx.fillStyle=col; ctx.fill();
+    ctx.globalAlpha=0.55; ctx.lineWidth=1; ctx.strokeStyle=col; ctx.stroke();
+    ctx.globalAlpha=1;
+  }
+  if(state.nearest){                         // a line to the next corner
+    var t=W2S(state.nearest.p.easting, state.nearest.p.northing);
+    ctx.beginPath(); ctx.moveTo(m[0],m[1]); ctx.lineTo(t[0],t[1]);
+    ctx.setLineDash([5,5]); ctx.lineWidth=1.6; ctx.strokeStyle=col; ctx.globalAlpha=0.8; ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+  }
+  ctx.beginPath(); ctx.arc(m[0],m[1],8,0,6.3); ctx.fillStyle=css("--surface"); ctx.fill();
+  ctx.beginPath(); ctx.arc(m[0],m[1],5.5,0,6.3); ctx.fillStyle=col; ctx.fill();
+  ctx.restore();
+}
+
+/* ---- who is planting -------------------------------------------------- */
+
+// Crew names come from pillar_crew(): names only, nothing else from employees.
+// Cached on the phone so the picker works out of signal.
+function loadCrew(){
+  function apply(list){
+    state.crewList=list||[];
+    var saved=null; try{ saved=JSON.parse(ls("pf.planter")||"null"); }catch(e){}
+    var pick=null;
+    if(saved) pick=state.crewList.filter(function(c){ return c.id===saved.id; })[0] || saved;
+    if(!pick && state.myEmployeeId)
+      pick=state.crewList.filter(function(c){ return c.id===state.myEmployeeId; })[0] || null;
+    state.planter = pick ? { id:pick.id, name:pick.name } : null;
+    plantProgress();
+  }
+  return rest("rpc/pillar_crew",{ method:"POST", body:"{}" })
+    .then(function(list){ idbPut("kv",list,"crew"); apply(list); })
+    .catch(function(){ return idbGet("kv","crew").then(apply); });
+}
+function crewSheet(then){
+  openSheet("Who is planting?", function(b){
+    b.appendChild(el("p","note","Every pillar planted from this phone is logged against this person until you change it."));
+    if(!state.crewList.length){
+      b.appendChild(el("p",null,"The crew list has not reached this phone yet. Open a job once with signal and it will be kept here."));
+      return;
+    }
+    var list=el("div","joblist");
+    state.crewList.forEach(function(c){
+      var btn=el("button","jrow"); btn.type="button";
+      btn.appendChild(el("b",null,c.name||"—"));
+      if(c.crew) btn.appendChild(el("span",null,c.crew));
+      if(state.planter && state.planter.id===c.id) btn.style.borderColor="var(--accent)";
+      btn.onclick=function(){
+        state.planter={ id:c.id, name:c.name };
+        ls("pf.planter", JSON.stringify(state.planter));
+        closeSheet(); plantProgress();
+        toast("Planting as "+c.name);
+        if(then) then();
+      };
+      list.appendChild(btn);
+    });
+    b.appendChild(list);
+  }, [{ label:"Cancel", on:closeSheet }]);
+}
+function crewName(id){
+  var c=state.crewList.filter(function(x){ return x.id===id; })[0];
+  return c ? c.name : null;
 }
 function centerOn(p){
   if(p.easting==null || p.northing==null || cw<2) return;
@@ -1084,12 +1274,6 @@ function requestDraw(){
   if(rafPending) return; rafPending=true;
   requestAnimationFrame(function(){ rafPending=false; draw(); });
 }
-function colorFor(o, P){
-  var ci=o.ci;
-  if(ci===256 || ci==null) ci = P.layers[o.layer]!=null ? P.layers[o.layer] : 7;
-  if(ci===7 || ci===0 || ci===256) return css("--plan-ink");
-  return ACI[ci] || css("--plan-ink");
-}
 function draw(){
   if(!ctx) return;
   ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -1100,42 +1284,36 @@ function draw(){
   var wl=v.tx, wb=v.ty, wr=v.tx+cw/v.s, wt=v.ty+ch/v.s;
 
   if(P){
-    ctx.lineWidth=1; ctx.lineJoin="round"; ctx.lineCap="round";
-    var last=null, textQ=[];
-    for(var i=0;i<P.items.length;i++){
-      var o=P.items[i];
-      if(state.hiddenLayers[o.layer]) continue;
-      var bb=o.bb;
-      if(bb[2]<wl||bb[0]>wr||bb[3]<wb||bb[1]>wt) continue;
-      var col=colorFor(o,P);
-      if(col!==last){ ctx.strokeStyle=col; ctx.fillStyle=col; last=col; }
-      if(o.k==="p"){
-        ctx.beginPath();
-        for(var j=0;j<o.pts.length;j+=2){
-          var s=W2S(o.pts[j],o.pts[j+1]);
-          if(j===0) ctx.moveTo(s[0],s[1]); else ctx.lineTo(s[0],s[1]);
+    // One strong ink for the whole drawing, not each line's CAD colour —
+    // survey linework is often on CAD's greys (colours 8 and 9), which nearly
+    // vanished on the light sheet. Over satellite, black disappears into the
+    // trees, so each line gets a pale edge drawn first.
+    var ink=css("--plan-ink"), halo=css("--plan-halo");
+    var passes = state.sat ? [[halo,3.8],[ink,1.6]] : [[ink,1.5]];
+    ctx.lineJoin="round"; ctx.lineCap="round";
+    for(var ps=0; ps<passes.length; ps++){
+      ctx.strokeStyle=passes[ps][0]; ctx.fillStyle=passes[ps][0]; ctx.lineWidth=passes[ps][1];
+      for(var i=0;i<P.items.length;i++){
+        var o=P.items[i];
+        if(state.hiddenLayers[o.layer]) continue;
+        var bb=o.bb;
+        if(bb[2]<wl||bb[0]>wr||bb[3]<wb||bb[1]>wt) continue;
+        if(o.k==="p"){
+          ctx.beginPath();
+          for(var j=0;j<o.pts.length;j+=2){
+            var s=W2S(o.pts[j],o.pts[j+1]);
+            if(j===0) ctx.moveTo(s[0],s[1]); else ctx.lineTo(s[0],s[1]);
+          }
+          ctx.stroke();
+        } else if(o.k==="a"){
+          var c=W2S(o.x,o.y), rr=o.r*v.s;
+          if(rr<0.6) continue;
+          ctx.beginPath(); ctx.arc(c[0],c[1],rr,-o.a1,-o.a0); ctx.stroke();
+        } else if(o.k==="d"){
+          var d=W2S(o.x,o.y);
+          ctx.beginPath(); ctx.arc(d[0],d[1],passes[ps][1]+1,0,6.3); ctx.fill();
         }
-        ctx.stroke();
-      } else if(o.k==="a"){
-        var c=W2S(o.x,o.y), rr=o.r*v.s;
-        if(rr<0.6) continue;
-        ctx.beginPath(); ctx.arc(c[0],c[1],rr,-o.a1,-o.a0); ctx.stroke();
-      } else if(o.k==="d"){
-        var d=W2S(o.x,o.y);
-        ctx.beginPath(); ctx.arc(d[0],d[1],1.6,0,6.3); ctx.fill();
-      } else if(o.k==="t"){
-        if(o.h*v.s>6 && textQ.length<900) textQ.push(o);
       }
-    }
-    for(var q=0;q<textQ.length;q++){
-      var tq=textQ[q], ts=W2S(tq.x,tq.y), hh=tq.h*v.s;
-      ctx.save();
-      ctx.fillStyle=colorFor(tq,P);
-      ctx.translate(ts[0],ts[1]); ctx.rotate(-tq.rot);
-      ctx.font='400 '+Math.min(hh,40).toFixed(1)+'px '+css("--f-mono");
-      ctx.textBaseline="bottom";
-      ctx.fillText(tq.s,0,0);
-      ctx.restore();
     }
   }
 
@@ -1154,6 +1332,7 @@ function draw(){
       ctx.fillText(p.pillar_no||"?", sp[0]+14, sp[1]);
     }
   }
+  drawMe();
 }
 
 // Builds the outline for a type. Returns false for marks with no interior.
@@ -1296,8 +1475,15 @@ function tapAt(sx,sy){
     if(!hit){ toast("Tap a corner marker to log it planted"); return; }
     var wasPlanted = (hit.status==="set");
     hit.status = wasPlanted ? "to_set" : "set";
-    if(!wasPlanted && !hit.set_on) hit.set_on = today();
-    if(!wasPlanted && !hit.crew && state.crew) hit.crew = state.crew;
+    if(!wasPlanted){
+      // The day it went in the ground — not the day the corner was drawn,
+      // which is what set_on held until now.
+      hit.set_on = today();
+      hit.planted_by = state.planter ? state.planter.id : null;
+      if(state.planter) hit.crew = state.planter.name;
+    } else {
+      hit.planted_by = null;
+    }
     state.sel = hit.id;
     touchPoint(hit); savePoint(hit); requestDraw(); plantProgress();
     var t=tally();
@@ -1325,7 +1511,9 @@ function nextNo(){
   });
   return "P"+String(max+1).padStart(3,"0");
 }
-function touchPoint(p){ p.updated_at=nowISO(); p._dirty=true; }
+// Any real action on a pillar makes it this crew's own record, no longer just
+// a corner the tool dropped — so it syncs as an edit that wins, not a seed.
+function touchPoint(p){ p.updated_at=nowISO(); p._dirty=true; delete p._seed; }
 
 function newPoint(extra){
   var p = Object.assign({
@@ -1383,10 +1571,47 @@ function rowOf(p){
     id:p.id, job_id:p.job_id, pillar_no:p.pillar_no, status:p.status, pillar_type:p.pillar_type,
     lot:p.lot, easting:p.easting, northing:p.northing, elevation:p.elevation,
     coord_system:p.coord_system, lat:p.lat, lon:p.lon, gps_accuracy:p.gps_accuracy,
-    set_on:p.set_on, crew:p.crew, notes:p.notes, photo_path:p.photo_path,
+    set_on:p.set_on, crew:p.crew, planted_by:p.planted_by||null, notes:p.notes, photo_path:p.photo_path,
     unit_cost:p.unit_cost, source:p.source, device_id:p.device_id, deleted:!!p.deleted,
     created_at:p.created_at, updated_at:p.updated_at
   };
+}
+function chunks(arr, n){ var out=[]; for(var i=0;i<arr.length;i+=n) out.push(arr.slice(i,i+n)); return out; }
+function inSeries(list, fn){
+  return list.reduce(function(chain, x){ return chain.then(function(){ return fn(x); }); }, Promise.resolve());
+}
+// Edits: this phone's version wins (merge).
+function pushEdits(rows){
+  return inSeries(chunks(rows,200), function(part){
+    return rest("pillar_points?on_conflict=id",{ method:"POST",
+      headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
+      body:JSON.stringify(part.map(rowOf)) })
+    .then(function(){ part.forEach(function(p){ p._dirty=false; idbPut("points", stripRuntime(p)); }); });
+  });
+}
+// Corners the tool dropped and nobody has touched: insert only, never
+// overwrite. If another crew placed the same corner first — perhaps already
+// planted it — theirs stands, and this phone takes their copy.
+function pushSeeds(rows){
+  return inSeries(chunks(rows,200), function(part){
+    return rest("pillar_points?on_conflict=id",{ method:"POST",
+      headers:{ Prefer:"resolution=ignore-duplicates,return=minimal" },
+      body:JSON.stringify(part.map(rowOf)) });
+  }).then(function(){
+    return inSeries(chunks(rows,80), function(part){
+      var ids=part.map(function(p){ return p.id; }).join(",");
+      return rest("pillar_points?id=in.("+ids+")").then(function(server){
+        var byId={}; (server||[]).forEach(function(r){ byId[r.id]=r; });
+        part.forEach(function(p){
+          var r=byId[p.id];
+          if(!r) return;                       // not there yet: try again next sync
+          Object.keys(r).forEach(function(k){ p[k]=r[k]; });
+          p._dirty=false; delete p._seed;
+          idbPut("points", stripRuntime(p));
+        });
+      });
+    });
+  });
 }
 function syncNow(manual){
   if(state.syncing || !state.job || !auth.session) return Promise.resolve();
@@ -1396,14 +1621,9 @@ function syncNow(manual){
   return uploadPendingPhotos()
     .then(function(){
       var dirty=state.points.filter(function(p){return p._dirty;});
-      if(!dirty.length) return null;
-      return rest("pillar_points?on_conflict=id", {
-        method:"POST",
-        headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
-        body: JSON.stringify(dirty.map(rowOf))
-      }).then(function(){
-        dirty.forEach(function(p){ p._dirty=false; idbPut("points", stripRuntime(p)); });
-      });
+      var seeds=dirty.filter(function(p){ return p._seed; });
+      var edits=dirty.filter(function(p){ return !p._seed; });
+      return pushSeeds(seeds).then(function(){ return pushEdits(edits); });
     })
     .then(function(){
       var since = state.lastPull || "1970-01-01T00:00:00Z";
@@ -1515,6 +1735,7 @@ function renderCounts(){
   });
   renderTypeFilters();
   renderLegend();
+  if(state.locating) guideNearest();   // planting one changes which corner is next
 }
 
 // Same shapes the plan draws, so the markers can be read without guessing.
@@ -1696,6 +1917,26 @@ function renderJob(){
       }
     }
   }
+  // Who put them in — for checking the work and for the crew's pay.
+  var byWho={};
+  state.points.forEach(function(p){
+    if(p.deleted || (p.status!=="set" && p.status!=="rebuilt")) return;
+    var who=(p.planted_by && crewName(p.planted_by)) || p.crew || "Not recorded";
+    byWho[who]=(byWho[who]||0)+1;
+  });
+  var wb=$("whoBreak");
+  if(wb){
+    wb.textContent="";
+    var names=Object.keys(byWho).sort(function(a,b){ return byWho[b]-byWho[a]; });
+    if(!names.length){
+      var w0=el("div","kv"); w0.appendChild(el("dt",null,"Nothing planted yet")); w0.appendChild(el("dd",null,"—"));
+      wb.appendChild(w0);
+    }
+    names.forEach(function(nm){
+      var w1=el("div","kv"); w1.appendChild(el("dt",null,nm)); w1.appendChild(el("dd",null,String(byWho[nm])));
+      wb.appendChild(w1);
+    });
+  }
   var cn=$("costNote");
   if(cn) cn.textContent = cps===used
     ? "All " + cps + " counted as concrete pillars."
@@ -1802,7 +2043,21 @@ function openPillar(p, isNew){
     r3.appendChild(w3); r3.appendChild(w4);
     var fw2=el("div","field"); fw2.style.marginTop="13px"; fw2.appendChild(r3); body.appendChild(fw2);
 
-    var crewI=field(body,"Set by / crew", input("fCrew","text",draft.crew||""));
+    // Planted by: a pick from the crew list when it is on the phone, so the
+    // record links to a real person; free text only as a fallback.
+    var crewI;
+    if(state.crewList.length){
+      crewI=el("select","inp"); crewI.id="fCrew";
+      var none=el("option",null,"— not recorded —"); none.value=""; crewI.appendChild(none);
+      state.crewList.forEach(function(c){
+        var o=el("option",null,c.name); o.value=c.id;
+        if(draft.planted_by===c.id) o.selected=true;
+        crewI.appendChild(o);
+      });
+      field(body,"Planted by",crewI);
+    } else {
+      crewI=field(body,"Planted by", input("fCrew","text",draft.crew||""));
+    }
     var costI=field(body,"Cost for this pillar (BZD)", input("fCost","number",draft.unit_cost!=null?draft.unit_cost:"",{step:"0.01",placeholder:String(state.unitCost),inputmode:"decimal"}));
     var noteI=el("textarea","inp"); noteI.id="fNotes"; noteI.value=draft.notes||"";
     field(body,"Notes",noteI);
@@ -1842,7 +2097,12 @@ function openPillar(p, isNew){
       draft.easting=num(eI.value); draft.northing=num(nI.value);
       draft.lot=lotI.value.trim()||null;
       draft.set_on=dateI.value||null;
-      draft.crew=crewI.value.trim()||null;
+      if(crewI.tagName==="SELECT"){
+        draft.planted_by = crewI.value || null;
+        draft.crew = draft.planted_by ? crewName(draft.planted_by) : null;
+      } else {
+        draft.crew = crewI.value.trim() || null;
+      }
       draft.unit_cost=costI.value===""?null:num(costI.value);
       draft.notes=noteI.value.trim()||null;
       return draft;
@@ -2012,56 +2272,76 @@ function loadMaterial(){
       });
     });
 }
-function saveUnitCost(v){
-  state.unitCost=v; renderJob();
-  idbPut("kv",{id:state.materialId,cost:v},"material");
-  if(state.materialId && navigator.onLine){
-    rest("materials?id=eq."+state.materialId,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({cost:v})})
-      .then(function(){ toast("Rate updated"); })
-      .catch(function(){ toast("Saved here — rate will update when online"); });
-  }
+// The server's own words when it refuses something, not a raw HTTP dump.
+function errText(e){
+  try{ var j=JSON.parse(e.body||e.message); if(j && j.message) return j.message; }catch(x){}
+  return String(e && e.message || e).slice(0,90);
 }
-function postCost(){
-  if(!navigator.onLine){ toast("Needs signal — try at the office"); return; }
-  // Only concrete pillars are charged against the material.
-  var qty=0, amount=0;
-  state.points.forEach(function(p){
-    if(p.deleted || (p.status!=="set" && p.status!=="rebuilt")) return;
-    if(!CONCRETE[p.pillar_type]) return;
-    qty++;
-    amount += (p.unit_cost!=null? Number(p.unit_cost) : Number(state.unitCost||0));
-  });
-  if(!qty){ toast("No concrete pillars marked as set yet"); return; }
-  var btn=$("postCost"); btn.disabled=true; btn.textContent="Posting…";
 
-  rest("pillar_cost_links?job_id=eq."+state.job.id).then(function(links){
-    var link = links && links[0];
-    var payload = {
-      entry_date: today(), job_id: state.job.id, cost_type:"Material",
-      material_id: state.materialId, item:"Concrete pillars set (field app)",
-      qty: qty, amount: amount, currency:"BZD",
-      notes:"Posted from Pillar Flow — "+qty+" pillars"
-    };
-    if(link && link.cost_entry_id){
-      return rest("cost_entries?id=eq."+link.cost_entry_id,{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify(payload)})
-        .then(function(){ return link.cost_entry_id; });
-    }
-    return rest("cost_entries",{method:"POST",headers:{Prefer:"return=representation"},body:JSON.stringify(payload)})
-      .then(function(rows){ return rows[0].id; });
-  }).then(function(ceId){
-    return rest("pillar_cost_links?on_conflict=job_id",{
-      method:"POST", headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
-      body:JSON.stringify({job_id:state.job.id, unit_cost:state.unitCost, cost_entry_id:ceId,
-                           posted_qty:qty, posted_at:nowISO(), updated_at:nowISO()})
+// Who is signed in: an admin or not, and which employee they are. Until this
+// is known the rate and cost controls stay locked — the safe way round.
+function loadMe(){
+  var uid = auth.session && auth.session.user && auth.session.user.id;
+  if(!uid){ applyRole(); return Promise.resolve(); }
+  return rest("profiles?select=role,employee_id&id=eq."+uid)
+    .then(function(rows){
+      var me=(rows && rows[0]) || {};
+      state.isAdmin = me.role==="admin";
+      state.myEmployeeId = me.employee_id || null;
+      idbPut("kv",{isAdmin:state.isAdmin, emp:state.myEmployeeId},"me:"+uid);
+      applyRole();
+    })
+    .catch(function(){
+      return idbGet("kv","me:"+uid).then(function(m){
+        if(m){ state.isAdmin=!!m.isAdmin; state.myEmployeeId=m.emp||null; }
+        applyRole();
+      });
     });
-  }).then(function(){
+}
+function applyRole(){
+  $("unitCost").disabled = !state.isAdmin;
+  $("postCost").hidden = !state.isAdmin;
+  $("rateNote").hidden = !state.isAdmin;
+  $("adminNote").hidden = !!state.isAdmin;
+}
+
+// Changing the CP rate goes through set_pillar_rate, which refuses anyone who
+// is not an admin. The total on this phone only moves once the office agrees.
+function saveUnitCost(v){
+  var input=$("unitCost");
+  if(!state.isAdmin){ input.value=state.unitCost; toast("Only an admin can change the rate"); return; }
+  if(!navigator.onLine){ input.value=state.unitCost; toast("Needs signal to change the rate"); return; }
+  rest("rpc/set_pillar_rate",{method:"POST",body:JSON.stringify({new_cost:v})})
+    .then(function(r){
+      state.unitCost = Number(r);
+      input.value = state.unitCost;
+      idbPut("kv",{id:state.materialId,cost:state.unitCost},"material");
+      renderJob();
+      toast("Rate changed to "+money(state.unitCost)+" for everyone");
+    })
+    .catch(function(e){ input.value=state.unitCost; toast(errText(e)); });
+}
+
+// Posting goes through post_pillar_cost: admins only, and the office counts the
+// planted pillars itself. So sync first — a pillar still sitting on this phone
+// would otherwise be left out of the bill.
+function postCost(){
+  if(!state.isAdmin){ toast("Only an admin can post costs"); return; }
+  if(!navigator.onLine){ toast("Needs signal — try at the office"); return; }
+  var btn=$("postCost"); btn.disabled=true; btn.textContent="Syncing first…";
+  syncNow().then(function(){
+    if(pendingCount()) throw new Error("Some pillars have not reached the office yet — try again in a moment");
+    btn.textContent="Posting…";
+    return rest("rpc/post_pillar_cost",{method:"POST",body:JSON.stringify({p_job:state.job.id})});
+  }).then(function(rows){
+    var r=(rows && rows[0]) || {};
     btn.disabled=false; btn.textContent="Post to job costs";
     $("postedNote").hidden=false;
-    $("postedNote").textContent="Posted "+qty+" pillars, "+money(amount)+", to this job's costs just now.";
+    $("postedNote").textContent="Posted "+r.qty+" pillars, "+money(r.amount)+", to this job's costs just now.";
     toast("Posted to job costs");
   }).catch(function(e){
     btn.disabled=false; btn.textContent="Post to job costs";
-    toast("Could not post — "+String(e.message||e).slice(0,60));
+    toast("Could not post — "+errText(e));
   });
 }
 
@@ -2164,6 +2444,7 @@ function openJob(j){
     state.viewFitted=false;
     fitView();
     loadMaterial();
+    loadMe().then(loadCrew);
     syncNow();
     startPolling();
   });
@@ -2265,13 +2546,25 @@ function placeCorners(list, status, type){
     var m=String(p.pillar_no||"").match(/(\d+)\s*$/);
     if(m){ var n=parseInt(m[1],10); if(n>max) max=n; }
   });
-  var batch=[];
+  var batch=[], byId={};
+  state.points.forEach(function(p){ byId[p.id]=p; });
   list.forEach(function(c){
+    var id=cornerId(state.job.id, c[0], c[1]);
+    var had=byId[id];
+    if(had){
+      // This phone removed it earlier (Undo, or deleted by hand); placing the
+      // corners again brings it back as this crew's own record.
+      if(had.deleted){
+        had.deleted=false; had.status=status; had.pillar_type=type;
+        touchPoint(had); idbPut("points", stripRuntime(had)); batch.push(id);
+      }
+      return;
+    }
     max++;
-    var p=newPoint({ pillar_no:"P"+String(max).padStart(3,"0"),
+    var p=newPoint({ id:id, pillar_no:"P"+String(max).padStart(3,"0"),
                      easting:c[0], northing:c[1],
-                     status:status, pillar_type:type, source:"plan-corners" });
-    state.points.push(p); batch.push(p.id);
+                     status:status, pillar_type:type, source:"plan-corners", _seed:true });
+    state.points.push(p); byId[id]=p; batch.push(id);
     idbPut("points", stripRuntime(p));
   });
   state.lastBatch=batch;
@@ -2285,19 +2578,24 @@ function placedSheet(n, status){
     b.appendChild(el("p",null, status==="set"
       ? "Every corner now has a pillar recorded as set. Change any that are different — a nail, a steel pipe, a wooden post — from the Pillars tab."
       : "Every corner now has a pillar waiting. Mark each one as you set it."));
-    b.appendChild(el("p","note","Wrong layer? Undo removes the whole batch, but keeps any you have already edited."));
+    b.appendChild(el("p","note","Wrong layer? Undo removes the batch — but never a corner that has been planted, photographed or written on, by this crew or another."));
   },[
     { label:"Undo", danger:true, on:function(){
         var ids={}; (state.lastBatch||[]).forEach(function(i){ ids[i]=1; });
-        var removed=0;
+        var removed=0, kept=0;
         state.points.forEach(function(p){
-          if(ids[p.id] && !p.deleted && p.source==="plan-corners" && !p.notes && !p.photo_path){
-            p.deleted=true; touchPoint(p); idbPut("points",stripRuntime(p)); removed++;
-          }
+          if(!ids[p.id] || p.deleted) return;
+          // A corner id is shared with any other crew that placed the same
+          // corner. Once it has synced, only remove it if nobody has done
+          // anything to it — a planted pillar is real, whoever planted it.
+          var untouched = p._seed ||
+            (p.status==="to_set" && !p.planted_by && !p.notes && !p.photo_path);
+          if(!untouched){ kept++; return; }
+          p.deleted=true; touchPoint(p); idbPut("points",stripRuntime(p)); removed++;
         });
         state.lastBatch=null;
         renderCounts(); renderList(); renderJob(); requestDraw(); scheduleSync(); closeSheet();
-        toast("Removed "+removed);
+        toast("Removed "+removed+(kept? " · kept "+kept+" already worked on" : ""));
       }},
     { label:"Done", pri:true, on:closeSheet }
   ]);
@@ -2628,13 +2926,27 @@ function wire(){
     }
   };
   $("cAlign").onclick=alignSheet;
-  $("cPlant").onclick=function(){
-    state.plantMode=!state.plantMode;
-    this.setAttribute("aria-pressed",String(state.plantMode));
+  function setPlant(on){
+    state.plantMode=on;
+    $("cPlant").setAttribute("aria-pressed",String(on));
     plantProgress();
-    toast(state.plantMode
-      ? "Plant mode — tap each corner as you put the CP in"
+    toast(on
+      ? "Planting as "+state.planter.name+" — tap each corner as the CP goes in"
       : "Plant mode off");
+  }
+  $("cPlant").onclick=function(){
+    if(state.plantMode){ setPlant(false); return; }
+    // Every planting is logged against someone, so ask once before starting.
+    if(!state.planter){ crewSheet(function(){ setPlant(true); }); return; }
+    setPlant(true);
+  };
+  $("cWho").onclick=function(){ crewSheet(); };
+  $("cLocate").onclick=function(){ if(state.locating) stopLocate(); else startLocate(); };
+  // Tapping the guide walks the plan to the next corner.
+  $("hint").onclick=function(){
+    if(!state.nearest) return;
+    state.sel=state.nearest.p.id;
+    centerOn(state.nearest.p);
   };
   $("cSnap").onclick=function(){
     state.snap=!state.snap;
@@ -2661,6 +2973,8 @@ function wire(){
   };
   $("signOut").onclick=function(){
     auth.out(); state.job=null; state.points=[]; state.plan=null;
+    state.isAdmin=false; state.myEmployeeId=null; state.planter=null; applyRole();
+    stopLocate();
     try{ localStorage.removeItem("pf.job"); }catch(e){}
     showAuth();
   };
@@ -2694,12 +3008,34 @@ function boot(){
   updateLamp();
 }
 
+// Offline support and updates. The page itself is fetched fresh whenever there
+// is signal, so a new version arrives on the next open. If the app is already
+// open when a new version lands, say so instead of reloading under someone's
+// thumb mid-plant.
+function setupUpdates(){
+  var kb=$("kBuild");
+  if(kb) kb.textContent = BUILD.indexOf("__")===0 ? "development copy" : BUILD;
+  if(!("serviceWorker" in navigator) || location.protocol.indexOf("http")!==0) return;
+  var hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.addEventListener("controllerchange", function(){
+    if(!hadController){ hadController=true; return; }   // first install, not an update
+    $("updateBar").hidden=false;
+  });
+  $("updateGo").onclick=function(){ location.reload(); };
+  navigator.serviceWorker.register("sw.js").then(function(reg){
+    // Check for a new version each time the app comes back to the front.
+    document.addEventListener("visibilitychange", function(){
+      if(document.visibilityState==="visible") reg.update().catch(function(){});
+    });
+  }).catch(function(){});
+}
+
 openDB().then(function(){
   if(dbBroken) console.warn("No IndexedDB — records stay in memory only this session.");
+  setupUpdates();
   boot();
 });
 })();
 </script>
-<script>if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});}</script>
 </body>
 </html>
