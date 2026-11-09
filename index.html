@@ -460,7 +460,7 @@ var SB = {
 };
 // Filled in by build.sh. Shown on the Job tab so you can tell which version a
 // phone is actually running.
-var BUILD = "20261109-1551-eeac96f";
+var BUILD = "20261109-1615-d1f82f9";
 
 // Every corner on the drawing needs a CP; the crew plants them line by line.
 // "to_set" is the corner as it stands before they get there — pegged, no pillar.
@@ -787,10 +787,31 @@ function utmToMercAffine(){
   return [a,b,c,d, o[0]-(a*ce+c*cn), o[1]-(b*ce+d*cn)];
 }
 
+function inBelize(ll){ return ll.lat>15.5 && ll.lat<18.7 && ll.lon>-89.5 && ll.lon<-87.0; }
+
+// The fit above is flat, so it is only exact near where it is taken. Fitted at
+// the drawing's centre it is right at the job and drifts with distance: 77 km
+// away it put imagery 148 m out. So the imagery is fitted at the centre of
+// what is on screen, every frame, where it is good to a few centimetres across
+// a whole screen however far the job is.
+function affineAtView(){
+  var v=state.view;
+  var ce=v.tx+cw/(2*v.s)-(state.satDE||0), cn=v.ty+ch/(2*v.s)-(state.satDN||0);
+  var at=fromUTM(ce,cn,16,false);
+  if(!isFinite(at.lat) || !inBelize(at)) return null;
+  function m(e,n){ var ll=fromUTM(e,n,16,false); return mercFromLonLat(ll.lon,ll.lat); }
+  var o=m(ce,cn), ue=m(ce+500,cn), un=m(ce,cn+500);
+  var a=(ue[0]-o[0])/500, b=(ue[1]-o[1])/500, c=(un[0]-o[0])/500, d=(un[1]-o[1])/500;
+  if(!isFinite(a)||!isFinite(d)) return null;
+  return [a,b,c,d, o[0]-(a*ce+c*cn), o[1]-(b*ce+d*cn)];
+}
+
 function drawSatellite(){
   if(!state.sat) return;
-  var Am=state.satAffine;
-  if(!Am){ Am=state.satAffine=utmToMercAffine(); if(!Am) return; }
+  // satAffine is now only the check that the drawing is in Belize; the fit
+  // that places the tiles is taken at the view.
+  if(!state.satAffine){ state.satAffine=utmToMercAffine(); if(!state.satAffine) return; }
+  var Am=affineAtView(); if(!Am) return;
 
   var v=state.view;
   // UTM -> screen, including the manual alignment nudge
@@ -2862,7 +2883,8 @@ function alignSheet(){
 // worker has them cached for the field.
 function prefetchTiles(btn){
   if(!navigator.onLine){ toast("Needs a connection"); return; }
-  var Am=state.satAffine||(state.satAffine=utmToMercAffine());
+  if(!state.satAffine) state.satAffine=utmToMercAffine();
+  var Am=state.satAffine && affineAtView();
   if(!Am){ toast("Load the plan first"); return; }
   var v=state.view, dx=state.satDE||0, dy=state.satDN||0;
   var S=[v.s,0,0,-v.s, -v.s*(v.tx-dx), ch + v.s*(v.ty-dy)];

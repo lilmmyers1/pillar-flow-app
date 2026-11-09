@@ -1,9 +1,9 @@
-/* Pillar Flow service worker — build 20261109-1551-eeac96f
+/* Pillar Flow service worker — build 20261109-1615-d1f82f9
  *
  * This file is a template: build.sh writes sw.js from it with the build id
  * filled in. A new id means a new cache, so every publish reaches the phones.
  */
-var CACHE = "pillarflow-20261109-1551-eeac96f";
+var CACHE = "pillarflow-20261109-1615-d1f82f9";
 var SHELL = ["./", "./index.html", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", function (e) {
