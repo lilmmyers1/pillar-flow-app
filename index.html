@@ -191,7 +191,7 @@ textarea.inp{min-height:84px;resize:vertical}
 #cLocate[data-s="err"]{color:var(--st-missing);border-color:color-mix(in srgb,var(--st-missing) 50%,var(--line))}
 #cLocate[data-s="off"]{color:var(--faint)}
 .hint{align-self:flex-start;max-width:calc(100% - 64px);font:500 12.5px/1.35 var(--f-mono);color:var(--ink);text-align:left;border-radius:8px;padding:7px 11px;min-height:34px}
-.addbtn{flex:none;margin-left:auto}
+.posbox{background:var(--surface-2);border:1px solid var(--line-soft);border-radius:var(--r);padding:11px 12px;font-size:14px;color:var(--ink)}
 .legend{display:none;flex-wrap:wrap;gap:12px;align-items:center;border-radius:8px;padding:6px 10px;align-self:flex-start}
 .legend span{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mono);font-size:10.5px;color:var(--muted);white-space:nowrap}
 .legend svg{flex:none;color:var(--plan-ink)}
@@ -414,7 +414,6 @@ h2.sec{font:700 13px/1 var(--f-cond);letter-spacing:.09em;text-transform:upperca
           <hr>
           <button class="tool glass" id="cSat" type="button" aria-pressed="false" aria-label="Satellite imagery" title="Satellite"><svg class="ic"><use href="#i-sat"/></svg></button>
           <button class="tool glass" id="cAlign" type="button" aria-label="Line up the imagery" title="Align" hidden><svg class="ic"><use href="#i-align"/></svg></button>
-          <button class="tool glass" id="cSnap" type="button" aria-pressed="true" aria-label="Snap taps to drawing corners" title="Snap"><svg class="ic"><use href="#i-snap"/></svg></button>
           <hr>
           <button class="tool glass" id="loadDxf" type="button" aria-label="Load the job's DXF drawing" title="Load DXF"><svg class="ic"><use href="#i-file"/></svg></button>
         </div>
@@ -425,18 +424,17 @@ h2.sec{font:700 13px/1 var(--f-cond);letter-spacing:.09em;text-transform:upperca
         <div class="planempty" id="planEmpty">
           <div class="card">
             <h3>No drawing yet</h3>
-            <p>Load the job's DXF. Then <b>Corners</b> puts a pillar on every lot corner, and the crew taps each one as it is planted.</p>
+            <p>Load the job's DXF. Every lot corner, and every place two lines cross, gets a pillar waiting by itself; the crew taps each one as it goes in.</p>
             <button class="btn pri" id="loadDxf2" type="button"><svg class="ic"><use href="#i-file"/></svg>Load DXF</button>
           </div>
         </div>
         <div class="planhud gut">
           <div class="legend glass" id="legend" hidden></div>
-          <button class="hint glass" id="hint" type="button" aria-live="polite">Tap a corner to place a pillar</button>
+          <button class="hint glass" id="hint" type="button" aria-live="polite">Tap a point on the drawing</button>
           <div class="hudbar glass">
             <button class="plantbtn" id="cPlant" type="button" aria-pressed="false"><svg class="ic"><use href="#i-check"/></svg>Plant</button>
             <button class="whochip" id="cWho" type="button" hidden aria-label="Who is planting">Who?</button>
             <button class="gps" id="cLocate" type="button" aria-pressed="false">GPS…</button>
-            <button class="btn iconbtn addbtn" id="addHere" type="button" aria-label="Add a pillar at the centre of the screen" title="Add pillar"><svg class="ic"><use href="#i-plus"/></svg></button>
           </div>
         </div>
       </div>
@@ -455,7 +453,6 @@ h2.sec{font:700 13px/1 var(--f-cond);letter-spacing:.09em;text-transform:upperca
       <div class="scroll gut"><div class="wrap">
         <div class="searchrow">
           <input class="inp" id="q" type="search" placeholder="Search pillar no, lot or notes" aria-label="Search pillars">
-          <button class="btn pri iconbtn" id="addNew" type="button" aria-label="Add a pillar" title="Add a pillar"><svg class="ic"><use href="#i-plus"/></svg></button>
         </div>
         <div class="seg" id="filters" style="margin-bottom:8px" role="group" aria-label="Filter by status"></div>
         <div class="seg types" id="typeFilters" style="margin-bottom:12px" hidden role="group" aria-label="Filter by type"></div>
@@ -506,11 +503,10 @@ h2.sec{font:700 13px/1 var(--f-cond);letter-spacing:.09em;text-transform:upperca
         </div>
 
         <div class="card pad">
-          <h2 class="sec">Export and import</h2>
+          <h2 class="sec">Export</h2>
           <div style="display:flex;flex-direction:column;gap:8px">
             <button class="btn wide" id="expCsv" type="button">Pillar list (CSV)</button>
             <button class="btn wide" id="expDxf" type="button">Pillar points (DXF)</button>
-            <button class="btn wide" id="impCsv" type="button">Import points from CSV</button>
           </div>
         </div>
 
@@ -577,7 +573,7 @@ var SB = {
 };
 // Filled in by build.sh. Shown on the Job tab so you can tell which version a
 // phone is actually running.
-var BUILD = "20261110-0946-5829009";
+var BUILD = "20261110-1050-1cd3518";
 
 // Every corner on the drawing needs a CP; the crew plants them line by line.
 // "to_set" is the corner as it stands before they get there — pegged, no pillar.
@@ -1187,9 +1183,119 @@ function parseDXF(text){
   if(secs.ENTITIES) convert(group(secs.ENTITIES), blocks, out, null, 0);
 
   if(!out.items.length) throw new Error("No drawable entities found in that DXF.");
-  out.snap = new Float64Array(out.snap);
+  // The drawing's points: every corner, plus every place two lines cross. Taps
+  // land only on these, and they are where pillars go.
+  out.nodes = planNodes(out, null, NODE_TOL);
+  var flat = new Float64Array(out.nodes.length*2);
+  for(var n=0;n<out.nodes.length;n++){ flat[n*2]=out.nodes[n][0]; flat[n*2+1]=out.nodes[n][1]; }
+  out.snap = flat;
   buildSnapIndex(out);
   return out;
+}
+
+/* ---- the drawing's points: corners and crossings ----------------------- */
+// Two corners closer than this are one corner (CAD round-off, overlapping
+// lot lines drawn twice).
+var NODE_TOL = 0.02;
+
+// Every corner and every crossing on the layers pick() accepts (null = all):
+//  · each vertex of a line or polyline (both ends of a spline),
+//  · both ends of an arc, the centre of a small circle (a pillar symbol),
+//  · each POINT,
+//  · each place two straight segments cross part-way along — the drawing is
+//    split there, so a lot line crossed by another gets a corner at the cross.
+// Coincident points collapse to one. Returns [[e,n], ...]; out.crossings on
+// the array says how many came from crossings.
+function planNodes(P, pick, tol){
+  tol = tol || NODE_TOL;
+  var cell=Math.max(tol,1e-6)*2, seen=new Map(), out=[], segs=[];
+  function add(x,y){
+    if(!isFinite(x)||!isFinite(y)) return false;
+    var gx=Math.round(x/cell), gy=Math.round(y/cell);
+    for(var dx=-1;dx<=1;dx++) for(var dy=-1;dy<=1;dy++){
+      var a=seen.get((gx+dx)+","+(gy+dy));
+      if(a) for(var k=0;k<a.length;k++){
+        if(Math.abs(a[k][0]-x)<=tol && Math.abs(a[k][1]-y)<=tol) return false;
+      }
+    }
+    var key=gx+","+gy, arr=seen.get(key);
+    if(!arr){ arr=[]; seen.set(key,arr); }
+    arr.push([x,y]); out.push([x,y]);
+    return true;
+  }
+  for(var i=0;i<P.items.length;i++){
+    var o=P.items[i];
+    if(pick && !pick(o.layer)) continue;
+    if(o.k==="p"){
+      if(!o.nv) continue;
+      var L=o.pts.length;
+      if(o.nv===2){ add(o.pts[0],o.pts[1]); add(o.pts[L-2],o.pts[L-1]); continue; }
+      for(var j=0;j<L;j+=2){
+        add(o.pts[j],o.pts[j+1]);
+        if(j+3<L && (o.pts[j]!==o.pts[j+2] || o.pts[j+1]!==o.pts[j+3]))
+          segs.push(o.pts[j],o.pts[j+1],o.pts[j+2],o.pts[j+3]);
+      }
+    } else if(o.k==="a"){
+      var full = Math.abs(o.a1-o.a0) >= 2*Math.PI-1e-6;
+      if(!full){
+        add(o.x+o.r*Math.cos(o.a0), o.y+o.r*Math.sin(o.a0));
+        add(o.x+o.r*Math.cos(o.a1), o.y+o.r*Math.sin(o.a1));
+      } else if(o.r<=2) add(o.x,o.y);
+    } else if(o.k==="d") add(o.x,o.y);
+  }
+  var before=out.length;
+  crossings(segs, add);
+  out.crossings = out.length-before;
+  return out;
+}
+
+// Where straight segments cross part-way along both. A grid keeps it from
+// testing every pair; each crossing is counted in the one cell it falls in,
+// so a pair sharing several cells is not found twice. Segments that only
+// touch end-to-end, or run along each other, add nothing new: their ends are
+// already corners.
+function crossings(seg, add){
+  var n=seg.length/4; if(n<2) return;
+  var minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity,len=0,i;
+  for(i=0;i<seg.length;i+=4){
+    var x0=seg[i],y0=seg[i+1],x1=seg[i+2],y1=seg[i+3];
+    if(x0<minx)minx=x0; if(x1<minx)minx=x1; if(x0>maxx)maxx=x0; if(x1>maxx)maxx=x1;
+    if(y0<miny)miny=y0; if(y1<miny)miny=y1; if(y0>maxy)maxy=y0; if(y1>maxy)maxy=y1;
+    len+=Math.hypot(x1-x0,y1-y0);
+  }
+  var span=Math.max(maxx-minx, maxy-miny, 1e-6);
+  var c=Math.min(Math.max(len/n*1.5, span/1024), span/4);
+  var grid=new Map(), budget=4e6;                   // cell entries, a hard stop for huge files
+  for(i=0;i<n;i++){
+    var o=i*4;
+    var ax=Math.floor((Math.min(seg[o],seg[o+2])-minx)/c), bx=Math.floor((Math.max(seg[o],seg[o+2])-minx)/c);
+    var ay=Math.floor((Math.min(seg[o+1],seg[o+3])-miny)/c), by=Math.floor((Math.max(seg[o+1],seg[o+3])-miny)/c);
+    if((bx-ax+1)*(by-ay+1) > 20000) continue;        // a stray mile-long line: its ends still count
+    for(var gx=ax;gx<=bx;gx++) for(var gy=ay;gy<=by;gy++){
+      var k=gx*1048576+gy, a=grid.get(k); if(!a){ a=[]; grid.set(k,a); }
+      a.push(o);
+      if(--budget<0) return;
+    }
+  }
+  var tests=3e7;
+  grid.forEach(function(list, k){
+    if(list.length<2 || tests<0) return;
+    var gx=Math.floor(k/1048576), gy=k-gx*1048576;
+    for(var p=0;p<list.length;p++){
+      var a=list[p], px=seg[a], py=seg[a+1], rx=seg[a+2]-px, ry=seg[a+3]-py;
+      for(var q=p+1;q<list.length;q++){
+        if(--tests<0) return;
+        var b=list[q], qx=seg[b], qy=seg[b+1], sx=seg[b+2]-qx, sy=seg[b+3]-qy;
+        var d=rx*sy-ry*sx;
+        if(Math.abs(d) < 1e-12*(Math.abs(rx*sy)+Math.abs(ry*sx)+1e-30)) continue;   // parallel
+        var t=((qx-px)*sy-(qy-py)*sx)/d, u=((qx-px)*ry-(qy-py)*rx)/d;
+        if(t<=1e-9 || t>=1-1e-9 || u<0 || u>1) continue;     // at an end, or no cross
+        var x=px+t*rx, y=py+t*ry;
+        if(Math.floor((x-minx)/c)!==gx || Math.floor((y-miny)/c)!==gy) continue;
+        add(x,y);
+      }
+    }
+  });
 }
 
 function group(pairs){
@@ -1217,6 +1323,8 @@ function convert(recs, blocks, out, xf, depth){
     if(x<b.minx)b.minx=x; if(x>b.maxx)b.maxx=x;
     if(y<b.miny)b.miny=y; if(y>b.maxy)b.maxy=y;
   }
+  // snapIt: true (every vertex is a corner), false (none — a drawn curve or a
+  // fill), "ends" (only where it starts and stops — a fitted spline).
   function addPoly(pts, layer, ci, snapIt){
     if(pts.length<4) return;
     var minx=Infinity,miny=Infinity,maxx=-Infinity,maxy=-Infinity;
@@ -1227,7 +1335,8 @@ function convert(recs, blocks, out, xf, depth){
       if(x<minx)minx=x; if(x>maxx)maxx=x; if(y<miny)miny=y; if(y>maxy)maxy=y;
       if(snapIt!==false){ out.snap.push(x,y); }
     }
-    out.items.push({k:"p", pts:pts, layer:layer, ci:ci, bb:[minx,miny,maxx,maxy]});
+    out.items.push({k:"p", pts:pts, layer:layer, ci:ci, bb:[minx,miny,maxx,maxy],
+                    nv: snapIt===false ? 0 : (snapIt==="ends" ? 2 : 1)});
   }
 
   for(var i=0;i<recs.length;i++){
@@ -1313,7 +1422,7 @@ function convert(recs, blocks, out, xf, depth){
         for(var m=0;m<Math.min(fx.length,fy.length);m++){
           var w=P(parseFloat(fx[m]), parseFloat(fy[m])); sp2.push(w[0],w[1]);
         }
-        addPoly(sp2, layer, ci);
+        addPoly(sp2, layer, ci, "ends");
       }
     }
     else if(t==="INSERT" && depth<4){
@@ -1452,7 +1561,7 @@ function plantProgress(){
   } else if(state.gpsDenied){
     parts.push("Location blocked — allow it in the browser settings");
   }
-  h.textContent = parts.length ? parts.join(" · ") : "Tap a corner to place a pillar";
+  h.textContent = parts.length ? parts.join(" · ") : "Tap a point on the drawing";
   h.style.cursor = state.nearest ? "pointer" : "";
 
   // The chip always says what the GPS is doing, so it never looks live when it isn't.
@@ -1731,6 +1840,7 @@ function draw(){
       }
     }
   }
+  if(P) drawFreeNodes(v);
   drawPillars(v);
   drawMe();
   drawScale();
@@ -1740,6 +1850,30 @@ function draw(){
 // Pillars, with level of detail: zoomed out they are small status dots (shapes
 // would only pile on top of each other), closer in they take their shapes,
 // and close enough to read, their numbers on a halo.
+// Points on the drawing with no pillar yet (usually on layers left out of the
+// automatic set): small open rings, once zoomed in enough to tell them apart.
+var freeCache={rev:-1, plan:null, set:null};
+function drawFreeNodes(v){
+  var P=state.plan; if(!P.nodes || v.s<0.5) return;
+  if(freeCache.rev!==state.rev || freeCache.plan!==P || freeCache.n!==state.points.length){
+    var set=new Set();
+    state.points.forEach(function(p){
+      if(!p.deleted && p.easting!=null) set.add(Math.round(p.easting/0.05)+","+Math.round(p.northing/0.05));
+    });
+    freeCache={rev:state.rev, plan:P, set:set, n:state.points.length};
+  }
+  var wl=v.tx, wb=v.ty, wr=v.tx+cw/v.s, wt=v.ty+ch/v.s, shown=0;
+  ctx.beginPath();
+  for(var i=0;i<P.nodes.length;i++){
+    var x=P.nodes[i][0], y=P.nodes[i][1];
+    if(x<wl||x>wr||y<wb||y>wt) continue;
+    if(freeCache.set.has(Math.round(x/0.05)+","+Math.round(y/0.05))) continue;
+    if(++shown>4000) break;
+    var sx=(x-v.tx)*v.s, sy=ch-(y-v.ty)*v.s;
+    ctx.moveTo(sx+3.5,sy); ctx.arc(sx,sy,3.5,0,6.2832);
+  }
+  ctx.setLineDash([]); ctx.lineWidth=1.2; ctx.strokeStyle=css("--muted"); ctx.stroke();
+}
 function drawPillars(v){
   var pts=state.points, lod = v.s<0.35 ? 0 : (v.s<1.0 ? 1 : 2);
   var sel=null, bg=css("--plan-bg");
@@ -1938,8 +2072,9 @@ function tapAt(sx,sy){
     var mp=state.points.find(function(x){return x.id===state.moveId;});
     setMoveBanner(null);
     if(mp){
-      var sn0=state.snap? findSnap(state.plan,w[0],w[1],22/state.view.s) : null;
-      mp.easting = sn0?sn0[0]:w[0]; mp.northing = sn0?sn0[1]:w[1];
+      var sn0=findSnap(state.plan,w[0],w[1],22/state.view.s);
+      if(!sn0){ toast("A pillar can only sit on one of the drawing's points"); return; }
+      mp.easting = sn0[0]; mp.northing = sn0[1];
       touchPoint(mp); savePoint(mp); requestDraw(); toast("Moved "+(mp.pillar_no||"pillar"));
     }
     return;
@@ -1985,10 +2120,11 @@ function tapAt(sx,sy){
     return;
   }
   if(hit){ state.sel=hit.id; requestDraw(); openPillar(hit); return; }
-  if(!state.plan){ toast("Load a DXF first, or add a pillar from the Pillars tab"); return; }
-
-  var sn = state.snap ? findSnap(state.plan, w[0], w[1], 22/state.view.s) : null;
-  newPillarAt(sn?sn[0]:w[0], sn?sn[1]:w[1], sn?"plan-snap":"plan");
+  if(!state.plan){ toast("Load the job's drawing first — pillars go on its points", "warn"); return; }
+  // Pillars go only on the drawing's own points — a corner or a crossing.
+  var sn = findSnap(state.plan, w[0], w[1], 22/state.view.s);
+  if(!sn){ toast("Tap one of the drawing's points — a corner or where lines cross"); return; }
+  newPillarAt(sn[0], sn[1], "plan-snap");
 }
 
 /* ========================================================================
@@ -2568,7 +2704,7 @@ function renderSide(){
     host.textContent="";
     host.appendChild(el("p","note", state.points.length
       ? "Nothing matches the filter on the Pillars tab."
-      : "Use Corners to put a pillar on every corner of the drawing."));
+      : "Load the job's drawing — a pillar goes on every corner and crossing by itself."));
     return;
   }
   fillRows(host, rows, true);
@@ -2766,34 +2902,15 @@ function openPillar(p, isNew){
     });
     field(body,"Type",typeSel);
 
-    var r2=el("div","row2");
-    var eI=input("fE","number",draft.easting,{step:"0.001",inputmode:"decimal"});
-    var nI=input("fN","number",draft.northing,{step:"0.001",inputmode:"decimal"});
-    var w1=el("div"); w1.appendChild(el("label","lbl","Easting")); w1.children[0].htmlFor="fE"; w1.appendChild(eI);
-    var w2=el("div"); w2.appendChild(el("label","lbl","Northing")); w2.children[0].htmlFor="fN"; w2.appendChild(nI);
-    r2.appendChild(w1); r2.appendChild(w2);
-    var fw=el("div","field"); fw.appendChild(r2); body.appendChild(fw);
-
-    var gpsBtn=el("button","btn wide","Use phone GPS"); gpsBtn.type="button";
-    gpsBtn.style.marginTop="-4px";
-    var gpsNote=el("p","note", draft.lat!=null ? ("GPS "+fmt(draft.lat,6)+", "+fmt(draft.lon,6)+(draft.gps_accuracy?"  ±"+fmt(draft.gps_accuracy,1)+" m":"")) : "Fills Easting/Northing as UTM zone 16N on WGS84 — a handheld fix, not RTK.");
-    gpsBtn.onclick=function(){
-      if(!navigator.geolocation){ toast("No GPS on this device"); return; }
-      gpsBtn.textContent="Getting fix…"; gpsBtn.disabled=true;
-      navigator.geolocation.getCurrentPosition(function(pos){
-        var c=pos.coords, u=toUTM(c.latitude,c.longitude,16);
-        draft.lat=c.latitude; draft.lon=c.longitude; draft.gps_accuracy=c.accuracy;
-        draft.coord_system="UTM16N";
-        eI.value=u.e.toFixed(3); nI.value=u.n.toFixed(3);
-        gpsNote.textContent="GPS "+fmt(c.latitude,6)+", "+fmt(c.longitude,6)+"  ±"+fmt(c.accuracy,1)+" m";
-        gpsBtn.textContent="Use phone GPS"; gpsBtn.disabled=false;
-        toast("Fix taken  ±"+Math.round(c.accuracy)+" m");
-      }, function(err){
-        gpsBtn.textContent="Use phone GPS"; gpsBtn.disabled=false;
-        toast(err.code===1? "Location permission refused" : "No GPS fix yet");
-      }, {enableHighAccuracy:true, timeout:20000, maximumAge:0});
-    };
-    body.appendChild(gpsBtn); body.appendChild(gpsNote);
+    // Position comes from the drawing and is not edited here: a pillar sits on
+    // one of the drawing's points, nowhere else.
+    var pos=el("div","field");
+    pos.appendChild(el("span","lbl","Position (UTM 16N, from the drawing)"));
+    var pv=el("div","posbox mono");
+    pv.textContent = draft.easting!=null
+      ? "E "+fmt(draft.easting,3)+"   N "+fmt(draft.northing,3)
+      : "No position";
+    pos.appendChild(pv); body.appendChild(pos);
 
     var r3=el("div","row2");
     var lotI=input("fLot","text",draft.lot||"");
@@ -2857,7 +2974,6 @@ function openPillar(p, isNew){
     body._read=function(){
       draft.pillar_no=noI.value.trim()||draft.pillar_no;
       draft.pillar_type=typeSel.value;
-      draft.easting=num(eI.value); draft.northing=num(nI.value);
       draft.lot=lotI.value.trim()||null;
       draft.set_on=dateI.value||null;
       if(crewI.tagName==="SELECT"){
@@ -2879,9 +2995,6 @@ function openPillar(p, isNew){
         confirmSheet("Delete "+(p.pillar_no||"this pillar")+"?", "It is removed here and in the office.", function(){
           p.deleted=true; touchPoint(p); savePoint(p); closeSheet(); requestDraw(); toast("Deleted");
         });
-      }},
-    { label:"Move", on:function(){
-        closeSheet(); showTab("plan"); setMoveBanner(p);
       }},
     { label:"Save", pri:true, on:function(){ saveFromSheet(p, false); } }
   ]);
@@ -3210,6 +3323,7 @@ function showPlan(rec, j, note){
   $("planEmpty").hidden=true;
   state.viewFitted=false; fitView(); requestDraw();
   if(note) toast(note);
+  autoPlaceNodes();
   return true;
 }
 
@@ -3316,9 +3430,10 @@ function pickDXF(){
       });
       state.viewFitted=false;
       showTab("plan"); fitView(); saveUi();
-      toast(f.name+" — "+P.items.length.toLocaleString()+" lines"+
-            (P.textSkipped? ", "+P.textSkipped.toLocaleString()+" labels left out" : "")+
+      toast(f.name+" — "+P.items.length.toLocaleString()+" lines, "+P.nodes.length.toLocaleString()+" points"+
+            (P.nodes.crossings? " ("+P.nodes.crossings.toLocaleString()+" where lines cross)" : "")+
             (navigator.onLine ? "" : ". It goes to the office when there is signal."));
+      setTimeout(autoPlaceNodes, 1200);   // after the summary has been read
     });
   };
   inp.click();
@@ -3392,27 +3507,7 @@ function promptSignIn(){
 // is one pillar, not four, so coincident vertices collapse to one.
 function cornerCandidates(layerPicked, tol){
   var P=state.plan; if(!P) return [];
-  var cell=Math.max(tol,1e-6)*2, seen=new Map(), out=[];
-  for(var i=0;i<P.items.length;i++){
-    var o=P.items[i];
-    if(o.k!=="p" || !layerPicked[o.layer]) continue;
-    for(var j=0;j<o.pts.length;j+=2){
-      var x=o.pts[j], y=o.pts[j+1];
-      if(!isFinite(x)||!isFinite(y)) continue;
-      var gx=Math.round(x/cell), gy=Math.round(y/cell), dup=false;
-      for(var dx=-1;dx<=1 && !dup;dx++) for(var dy=-1;dy<=1 && !dup;dy++){
-        var a=seen.get((gx+dx)+","+(gy+dy));
-        if(a) for(var k=0;k<a.length;k++){
-          if(Math.abs(a[k][0]-x)<=tol && Math.abs(a[k][1]-y)<=tol){ dup=true; break; }
-        }
-      }
-      if(dup) continue;
-      var key=gx+","+gy, arr=seen.get(key);
-      if(!arr){ arr=[]; seen.set(key,arr); }
-      arr.push([x,y]); out.push([x,y]);
-    }
-  }
-  return out;
+  return planNodes(P, function(l){ return !!layerPicked[l]; }, tol);
 }
 
 // Corners that do not already have a pillar on them, so running this twice
@@ -3437,7 +3532,8 @@ function cornersWithoutPillars(cands, tol){
   });
 }
 
-function placeCorners(list, status, type){
+function placeCorners(list, status, type, opts){
+  opts=opts||{};
   // Number them the way a plan reads: top row first, left to right.
   list=list.slice().sort(function(a,b){ return (b[1]-a[1]) || (a[0]-b[0]); });
   var max=0;
@@ -3453,7 +3549,7 @@ function placeCorners(list, status, type){
     if(had){
       // This phone removed it earlier (Undo, or deleted by hand); placing the
       // corners again brings it back as this crew's own record.
-      if(had.deleted){
+      if(had.deleted && !opts.auto){
         had.deleted=false; had.status=status; had.pillar_type=type;
         touchPoint(had); writes.push(had); batch.push(id);
       }
@@ -3471,8 +3567,41 @@ function placeCorners(list, status, type){
   // Undo stays reachable after this sheet closes (from the Corners sheet).
   ls("pf.lastbatch:"+state.job.id, JSON.stringify(batch));
   invalidate(); requestDraw(); scheduleSync();
+  if(opts.auto){
+    if(batch.length) toast(batch.length+(batch.length===1?" point":" points")+" placed on the drawing's corners and crossings — Corners can undo", "ok");
+    return;
+  }
   closeSheet();
   placedSheet(batch.length, status);
+}
+
+// Every corner and crossing on the drawing gets a pillar waiting to be planted,
+// with nothing to press. Runs whenever a drawing is shown and only adds what is
+// missing, so it never doubles up, and a pillar someone deleted stays deleted.
+// Lot-line layers are used when the drawing has them (a road or contour layer
+// crossing a lot line is not a corner); otherwise every visible layer.
+var AUTO_MAX=4000;
+function autoLayers(P){
+  var names={}, hidden=state.hiddenLayers||{};
+  P.items.forEach(function(o){ if(o.k==="p" && o.nv) names[o.layer]=1; });
+  var all=Object.keys(names).filter(function(n){ return !hidden[n]; });
+  var looks=/lot|bound|parcel|plot|block|subdiv|survey|line|prop|cadast/i;
+  var lots=all.filter(function(n){ return looks.test(n); });
+  return lots.length ? lots : all;
+}
+function autoPlaceNodes(){
+  var P=state.plan; if(!P || !state.job) return;
+  var use={}; autoLayers(P).forEach(function(n){ use[n]=1; });
+  var nodes=planNodes(P, function(l){ return !!use[l]; }, NODE_TOL);
+  var ids={}; state.points.forEach(function(p){ ids[p.id]=1; });
+  var job=state.job.id;
+  var fresh=cornersWithoutPillars(nodes, NODE_TOL).filter(function(c){ return !ids[cornerId(job,c[0],c[1])]; });
+  if(!fresh.length) return;
+  if(fresh.length>AUTO_MAX){
+    toast("This drawing has "+fresh.length.toLocaleString()+" corners and crossings — too many to place on their own. Hide the layers that are not lot lines (Layers), then use Corners.", "warn");
+    return;
+  }
+  placeCorners(fresh, "to_set", "concrete", {auto:true});
 }
 
 function placedSheet(n, status){
@@ -3529,7 +3658,7 @@ function cornerSheet(){
   names.forEach(function(n){ picked[n] = guess.indexOf(n)>=0; });
 
   openSheet("A pillar at every corner", function(body){
-    body.appendChild(el("p","note","Drops a pillar on every corner of the layers you pick. A corner shared by neighbouring lots counts once."));
+    body.appendChild(el("p","note","Puts a pillar on every corner, and every place two lines cross, on the layers you pick. A corner shared by neighbouring lots counts once."));
 
     var sum=el("div","card"); sum.style.cssText="padding:12px;margin:12px 0";
     body.appendChild(sum);
@@ -3848,11 +3977,6 @@ function wire(){
     var v=this.value; clearTimeout(qTimer);
     qTimer=setTimeout(function(){ state.q=v; state.listShown=LIST_PAGE; invalidate(); }, 140);
   };
-  $("addNew").onclick=function(){ openPillar(newPoint({}), true); };   // joins the job on Save
-  $("addHere").onclick=function(){
-    var c=S2W(cw/2, ch/2);
-    newPillarAt(c[0], c[1], "plan");
-  };
   $("loadDxf").onclick=pickDXF;
   $("loadDxf2").onclick=pickDXF;
   $("cFit").onclick=fitView;
@@ -3894,11 +4018,6 @@ function wire(){
     state.sel=state.nearest.p.id;
     centerOn(state.nearest.p);
   };
-  $("cSnap").onclick=function(){
-    state.snap=!state.snap;
-    this.setAttribute("aria-pressed",String(state.snap));
-    toast(state.snap? "Snapping to plan corners" : "Snap off — free placement");
-  };
   $("sheetClose").onclick=closeSheet;
   $("scrim").addEventListener("pointerdown", function(e){ if(e.target===this) closeSheet(); });
   document.addEventListener("keydown", function(e){ if(e.key==="Escape" && !$("scrim").hidden) closeSheet(); });
@@ -3909,7 +4028,6 @@ function wire(){
   $("expDxf").onclick=exportDXF;
   $("sideCsv").onclick=exportCSV;
   $("sideDxf").onclick=exportDXF;
-  $("impCsv").onclick=importCSV;
   $("syncBtn").onclick=function(){ syncNow(true); };
   $("switchJob").onclick=showJobs;
   // The back arrow and the phone's Back both leave the job for the job list.

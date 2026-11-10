@@ -1,4 +1,4 @@
-/* Pillar Flow service worker — build 20261110-0946-5829009
+/* Pillar Flow service worker — build 20261110-1050-1cd3518
  *
  * This file is a template: build.sh writes sw.js from it with the build id
  * filled in. A new id means a new worker, so every publish reaches the phones.
@@ -8,7 +8,7 @@
  *   pillarflow-tiles     satellite imagery and fonts. Kept across versions so
  *                        imagery downloaded for a job survives an app update.
  */
-var CACHE = "pillarflow-20261110-0946-5829009";
+var CACHE = "pillarflow-20261110-1050-1cd3518";
 var TILES = "pillarflow-tiles";
 var TILE_CAP = 6000;                // ~100 MB of imagery at most; oldest go first
 var SHELL = ["./index.html", "./manifest.webmanifest", "./icon.svg",
