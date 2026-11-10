@@ -4,48 +4,64 @@
 <title>Pillar Flow</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="description" content="Offline field log for concrete pillars: pick points off a DXF, record what was set, sync to the office.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Field log for concrete pillars — Captured Reality Inc. Pick corners off the job's drawing, log each pillar as it is planted, sync to the office.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pillar Flow">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<!-- Fonts load without holding up the first paint; offline, the system faces stand in. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
-/* Layout: one-screen app shell — hairline title block, full-bleed plan canvas, bottom tabs,
-   sheets slide up over. Day = 01 Plan Sheet, night = 02 Model Space (CCPT interface samples). */
+/* Pillar Flow — Captured Reality Inc.
+   Layout: one-screen app shell. A drawing title block across the top, the plan
+   full-bleed with its tools in a rail down the right and the crew's actions in
+   a bar along the bottom, tabs at the foot (a rail on the left on a desk).
+   Day = 01 Plan Sheet: drafting white, graphite, cadastral red.
+   Night = 02 Model Space: near-black, pale cyan entities, amber. */
 :root{
-  --bg:#f2f3f4; --surface:#ffffff; --surface-2:#e6e9ea; --sunk:#dcdfe1;
-  --line:#ccd1d4; --line-soft:#e2e6e8;
-  --ink:#15181b; --muted:#596069; --faint:#8a9199;
-  --accent:#c23b22; --accent-soft:#f7e2dd; --on-accent:#ffffff;
+  --bg:#f2f3f4; --surface:#ffffff; --surface-2:#e9ecee; --sunk:#dcdfe1;
+  --line:#c9cfd3; --line-soft:#e1e5e7;
+  --ink:#15181b; --muted:#535a62; --faint:#6f777f;
+  --accent:#c23b22; --accent-ink:#a8301a; --accent-soft:#f7e2dd; --on-accent:#ffffff;
   --st-set:#2d7a4f; --st-found:#1f6aa8; --st-toset:#8a6512; --st-rebuilt:#0f6b72; --st-missing:#b0291c;
   --plan-bg:#fbfbfa; --plan-ink:#000000; --plan-halo:#ffffff; --plan-grid:#e4e7e8; --me:#1a73e8;
-  --shadow:0 1px 2px rgba(21,24,27,.07), 0 8px 24px -12px rgba(21,24,27,.22);
+  --shadow:0 1px 2px rgba(21,24,27,.07), 0 10px 28px -14px rgba(21,24,27,.30);
+  --shadow-sm:0 1px 2px rgba(21,24,27,.10);
   --f-ui:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --f-cond:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --f-cond:"Barlow Condensed","Arial Narrow","Roboto Condensed",Arial,sans-serif;
   --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --r:9px;
   --titleblock:2px solid var(--ink);
+  --kb:0px;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#0d1013; --surface:#161b20; --surface-2:#1e252b; --sunk:#0a0d10;
-  --line:#28313a; --line-soft:#202830;
-  --ink:#e7ecef; --muted:#98a3ab; --faint:#6b757c;
-  --accent:#f0a830; --accent-soft:#2e2411; --on-accent:#141414;
+  --line:#2c3640; --line-soft:#202830;
+  --ink:#e7ecef; --muted:#a3adb5; --faint:#86919a;
+  --accent:#f0a830; --accent-ink:#f0a830; --accent-soft:#2e2411; --on-accent:#141414;
   --st-set:#4cb97a; --st-found:#58a8e8; --st-toset:#d6a53a; --st-rebuilt:#46b9c2; --st-missing:#ef6a5c;
   --plan-bg:#0a0d10; --plan-ink:#9fd4e0; --plan-halo:#000000; --plan-grid:#161d23; --me:#5ea2ff;
-  --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 30px -12px rgba(0,0,0,.75);
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 32px -14px rgba(0,0,0,.8);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.5);
   --r:5px;
   --titleblock:1px solid var(--line);
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
   --bg:#0d1013; --surface:#161b20; --surface-2:#1e252b; --sunk:#0a0d10;
-  --line:#28313a; --line-soft:#202830;
-  --ink:#e7ecef; --muted:#98a3ab; --faint:#6b757c;
-  --accent:#f0a830; --accent-soft:#2e2411; --on-accent:#141414;
+  --line:#2c3640; --line-soft:#202830;
+  --ink:#e7ecef; --muted:#a3adb5; --faint:#86919a;
+  --accent:#f0a830; --accent-ink:#f0a830; --accent-soft:#2e2411; --on-accent:#141414;
   --st-set:#4cb97a; --st-found:#58a8e8; --st-toset:#d6a53a; --st-rebuilt:#46b9c2; --st-missing:#ef6a5c;
   --plan-bg:#0a0d10; --plan-ink:#9fd4e0; --plan-halo:#000000; --plan-grid:#161d23; --me:#5ea2ff;
-  --shadow:0 1px 2px rgba(0,0,0,.45), 0 10px 30px -12px rgba(0,0,0,.75);
+  --shadow:0 1px 2px rgba(0,0,0,.45), 0 12px 32px -14px rgba(0,0,0,.8);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.5);
   --r:5px;
   --titleblock:1px solid var(--line);
   color-scheme:dark;
@@ -53,202 +69,262 @@
 
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--f-ui);-webkit-text-size-adjust:100%;overscroll-behavior:none}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 var(--f-ui);-webkit-text-size-adjust:100%;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
 img{max-width:100%}
 [hidden]{display:none!important}
 button,input,select,textarea{font:inherit;color:inherit}
-button{cursor:pointer}
+button{cursor:pointer;touch-action:manipulation}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.ic{width:20px;height:20px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---- brand ---- */
+.mark{width:28px;height:28px;border-radius:6px;background:var(--accent);flex:none;display:grid;place-items:center}
+.mark svg{width:16px;height:16px}
+.wordmark{display:flex;align-items:center;gap:10px}
+.wordmark b{font:700 22px/1 var(--f-cond);letter-spacing:.06em;text-transform:uppercase}
 
 /* ---- shell ---- */
 #app{height:100%;display:flex;flex-direction:column;min-height:0}
-.topbar{display:flex;align-items:center;gap:12px;padding-block:10px;background:var(--surface);border-top:var(--titleblock);border-bottom:1px solid var(--line);flex:none}
-.topbar h1{margin:0;font:700 18px/1.1 var(--f-cond);letter-spacing:.01em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.topbar .sub{margin:1px 0 0;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar{display:flex;align-items:center;gap:12px;padding-top:calc(10px + var(--sat));padding-bottom:10px;background:var(--surface);border-top:var(--titleblock);border-bottom:1px solid var(--line);flex:none}
+.topbar h1{margin:0;font:700 18px/1.1 var(--f-cond);letter-spacing:.02em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar .sub{margin:2px 0 0;font:500 11.5px/1.2 var(--f-mono);color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .topbar .grow{min-width:0;flex:1}
-/* Back to the job list. Hidden until a job is open; it replaces the mark. */
-.backbtn{display:none;border:1px solid var(--line);background:var(--surface-2);border-radius:var(--r);
-  width:38px;height:38px;place-items:center;flex:none;color:var(--ink)}
-.backbtn:hover{border-color:var(--accent);color:var(--accent)}
-.backbtn svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.backbtn{display:none;border:1px solid var(--line);background:var(--surface-2);border-radius:var(--r);width:44px;height:44px;place-items:center;flex:none;color:var(--ink)}
+.backbtn:hover{border-color:var(--accent);color:var(--accent-ink)}
 #topbar.injob .backbtn{display:grid}
 #topbar.injob .mark{display:none}
-#topbar.injob .grow{cursor:pointer}
-#topbar.injob .grow:hover h1{color:var(--accent)}
-.mark{width:26px;height:26px;border-radius:5px;background:var(--accent);flex:none;display:grid;place-items:center}
-.mark::after{content:"";width:9px;height:9px;background:var(--on-accent);clip-path:polygon(50% 0,100% 100%,0 100%)}
-.synclamp{display:flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:5px 10px;font:600 11px/1 var(--f-ui);color:var(--muted);flex:none}
-.synclamp .led{width:7px;height:7px;border-radius:50%;background:var(--faint)}
+.synclamp{display:flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:0 12px;min-height:36px;font:600 12px/1 var(--f-ui);color:var(--muted);flex:none;max-width:44vw}
+.synclamp span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.synclamp .led{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
 .synclamp[data-s="ok"] .led{background:var(--st-set)}
 .synclamp[data-s="pending"] .led{background:var(--st-toset)}
-.synclamp[data-s="off"] .led{background:var(--faint)}
+.synclamp[data-s="err"]{color:var(--st-missing);border-color:color-mix(in srgb,var(--st-missing) 45%,transparent)}
 .synclamp[data-s="err"] .led{background:var(--st-missing)}
 .synclamp[data-s="busy"] .led{background:var(--accent);animation:pulse 1s infinite}
 @keyframes pulse{50%{opacity:.25}}
-@media (prefers-reduced-motion:reduce){.synclamp[data-s="busy"] .led{animation:none}}
 
 main{flex:1;min-height:0;display:flex;flex-direction:column}
 .view{flex:1;min-height:0;display:flex;flex-direction:column}
-.scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-block:14px 24px}
+.scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-block:14px 28px}
+.wrap{max-width:980px;margin:0 auto;width:100%}
 
-.tabbar{display:flex;background:var(--surface);border-top:1px solid var(--line);flex:none}
-.tabbar button{flex:1;background:none;border:0;padding:9px 4px 11px;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);font:600 10.5px/1 var(--f-ui);letter-spacing:.3px;text-transform:uppercase;border-top:2px solid transparent;margin-top:-1px}
-.tabbar button[aria-selected="true"]{color:var(--accent);border-top-color:var(--accent)}
-.tabbar svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.7}
+.tabbar{display:flex;background:var(--surface);border-top:1px solid var(--line);flex:none;padding-bottom:var(--sab)}
+.tabbar button{flex:1;background:none;border:0;padding:9px 4px 10px;min-height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--muted);font:600 10.5px/1 var(--f-ui);letter-spacing:.06em;text-transform:uppercase;border-top:2px solid transparent;margin-top:-1px}
+.tabbar button[aria-selected="true"]{color:var(--accent-ink);border-top-color:var(--accent)}
+.tabbar .ic{width:22px;height:22px;stroke-width:1.7}
 
-/* ---- bits ---- */
-.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r);padding:11px 14px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px}
+/* ---- controls ---- */
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:var(--r);padding:11px 14px;font-weight:600;font-size:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;transition:background .12s,transform .06s}
 .btn:hover{background:var(--surface-2)}
+.btn:active{transform:translateY(1px);background:var(--sunk)}
 .btn.pri{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-.btn.pri:hover{filter:brightness(1.07)}
-.btn.sm{min-height:36px;padding:7px 11px;font-size:13px;border-radius:8px}
+.btn.pri:hover{filter:brightness(1.07);background:var(--accent)}
+.btn.pri:active{filter:brightness(.92)}
+.btn.sm{min-height:40px;padding:7px 12px;font-size:13px}
 .btn.wide{width:100%}
-.btn.danger{color:var(--st-missing);border-color:var(--line)}
+.btn.danger{color:var(--st-missing)}
+/* A destructive primary is solid red with white text — never red on red. */
+.btn.pri.danger{background:var(--st-missing);border-color:var(--st-missing);color:#fff}
+/* Quiet: a secondary action like Delete or Undo, given less weight than Save. */
+.btn.quiet{background:none;border-color:transparent;color:var(--muted);text-decoration:underline;text-underline-offset:3px}
+.btn.quiet.danger{color:var(--st-missing)}
 .btn:disabled{opacity:.45;pointer-events:none}
+.iconbtn{display:grid;place-items:center;width:44px;height:44px;padding:0;flex:none}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
-.lbl{display:block;font:600 11px/1 var(--f-ui);letter-spacing:.6px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.inp{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:11px 12px;min-height:44px}
-.inp:focus{border-color:var(--accent);outline:none}
-textarea.inp{min-height:76px;resize:vertical}
+.card.pad{padding:14px}
+.lbl{display:block;font:600 11px/1.1 var(--f-ui);letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+/* 16px so iPhone does not zoom the page when a field is tapped */
+.inp{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:11px 12px;min-height:46px;font-size:16px}
+.inp:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.inp{min-height:84px;resize:vertical}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.field{margin-bottom:13px}
-.pill{display:inline-flex;align-items:center;gap:5px;font:600 10.5px/1 var(--f-ui);letter-spacing:.5px;text-transform:uppercase;padding:4px 8px;border-radius:999px;border:1px solid}
+.field{margin-bottom:14px}
+.pill{display:inline-flex;align-items:center;gap:5px;font:600 10.5px/1 var(--f-ui);letter-spacing:.06em;text-transform:uppercase;padding:5px 8px;border-radius:999px;border:1px solid;white-space:nowrap}
 .pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
-.pill[data-k="set"]{color:var(--st-set);border-color:color-mix(in srgb,var(--st-set) 35%,transparent);background:color-mix(in srgb,var(--st-set) 10%,transparent)}
-.pill[data-k="found"]{color:var(--st-found);border-color:color-mix(in srgb,var(--st-found) 35%,transparent);background:color-mix(in srgb,var(--st-found) 10%,transparent)}
-.pill[data-k="to_set"]{color:var(--st-toset);border-color:color-mix(in srgb,var(--st-toset) 35%,transparent);background:color-mix(in srgb,var(--st-toset) 10%,transparent)}
-.pill[data-k="rebuilt"]{color:var(--st-rebuilt);border-color:color-mix(in srgb,var(--st-rebuilt) 35%,transparent);background:color-mix(in srgb,var(--st-rebuilt) 10%,transparent)}
-.pill[data-k="missing"]{color:var(--st-missing);border-color:color-mix(in srgb,var(--st-missing) 35%,transparent);background:color-mix(in srgb,var(--st-missing) 10%,transparent)}
+.pill[data-k="set"]{color:var(--st-set);border-color:color-mix(in srgb,var(--st-set) 38%,transparent);background:color-mix(in srgb,var(--st-set) 11%,transparent)}
+.pill[data-k="found"]{color:var(--st-found);border-color:color-mix(in srgb,var(--st-found) 38%,transparent);background:color-mix(in srgb,var(--st-found) 11%,transparent)}
+.pill[data-k="to_set"]{color:var(--st-toset);border-color:color-mix(in srgb,var(--st-toset) 38%,transparent);background:color-mix(in srgb,var(--st-toset) 11%,transparent)}
+.pill[data-k="rebuilt"]{color:var(--st-rebuilt);border-color:color-mix(in srgb,var(--st-rebuilt) 38%,transparent);background:color-mix(in srgb,var(--st-rebuilt) 11%,transparent)}
+.pill[data-k="missing"]{color:var(--st-missing);border-color:color-mix(in srgb,var(--st-missing) 38%,transparent);background:color-mix(in srgb,var(--st-missing) 11%,transparent)}
+.pill .pend{width:7px;height:7px;border-radius:50%;background:var(--st-toset);margin-left:2px}
+.pill .pend[data-bad]{background:var(--st-missing)}
 .seg{display:flex;gap:6px;flex-wrap:wrap}
-.seg button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 13px;font:600 12.5px/1 var(--f-ui);color:var(--muted);min-height:38px}
+.seg button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:0 13px;font:600 13px/1 var(--f-ui);color:var(--muted);min-height:40px}
 .seg button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)}
-/* type filters read as a different axis from the status row above them */
-.seg.types button{font-size:12px;padding:7px 11px;min-height:34px}
-.seg.types button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
-.empty{margin:auto;max-width:34ch;text-align:center;color:var(--muted);padding:28px 0}
-.empty h3{font:700 16px/1.3 var(--f-cond);color:var(--ink);margin:0 0 6px}
-.empty p{margin:0 0 14px;font-size:13.5px}
+.seg.types button{font-size:12.5px;padding:0 12px;min-height:36px}
+.seg.types button[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink)}
+/* status filters carry their counts */
+.fchip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:0 6px 0 13px;min-height:40px;font:600 13px/1 var(--f-ui);color:var(--ink)}
+.fchip .fn{font:700 13px/1 var(--f-mono);min-width:26px;padding:5px 7px;border-radius:999px;background:var(--surface-2);color:var(--k,var(--ink));text-align:center}
+.fchip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.fchip[aria-pressed="true"] .fn{background:var(--ink);color:var(--surface)}
+.empty{margin:auto;max-width:36ch;text-align:center;color:var(--muted);padding:32px 0}
+.empty h3{font:700 19px/1.25 var(--f-cond);letter-spacing:.03em;text-transform:uppercase;color:var(--ink);margin:0 0 8px}
+.empty p{margin:0 0 16px;font-size:14px}
+.empty .ic{width:34px;height:34px;color:var(--faint);margin-bottom:10px}
 
 /* ---- plan ---- */
-.planwrap{position:relative;flex:1;min-height:0;background:var(--plan-bg)}
+.planwrap{position:relative;flex:1;min-height:0;background:var(--plan-bg);overflow:hidden}
 #cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block}
-.planhud{position:absolute;inset:auto 0 0 0;display:flex;gap:8px;align-items:center;padding-block:10px;pointer-events:none;flex-wrap:wrap}
+.glass{background:color-mix(in srgb,var(--surface) 93%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border:1px solid var(--line);box-shadow:var(--shadow-sm)}
+/* tools: one column of icon buttons down the right edge, out of the crew's way */
+.rail{position:absolute;top:10px;right:max(10px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:6px;z-index:3}
+.tool{width:46px;height:46px;border-radius:var(--r);display:grid;place-items:center;color:var(--ink);padding:0}
+.tool[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.tool:active{transform:scale(.96)}
+.rail hr{border:0;height:1px;background:var(--line);margin:2px 6px}
+.readout{position:absolute;top:10px;left:max(10px,env(safe-area-inset-left,0px));font-family:var(--f-mono);font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--muted);border-radius:8px;padding:6px 9px;z-index:2;display:none}
+/* the crew's bar: plant, who, GPS, what's next, add */
+.planhud{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:8px;padding-top:10px;padding-bottom:10px;pointer-events:none;z-index:3}
 .planhud > *{pointer-events:auto}
-.chipbar{position:absolute;top:10px;left:0;right:0;display:flex;gap:8px;pointer-events:none;flex-wrap:wrap}
-.chipbar > *{pointer-events:auto}
-.chip{background:color-mix(in srgb,var(--surface) 92%,transparent);border:1px solid var(--line);border-radius:999px;padding:7px 11px;font:600 12px/1 var(--f-ui);display:inline-flex;align-items:center;gap:7px;min-height:36px;backdrop-filter:blur(6px);color:var(--ink)}
-.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
-/* The GPS chip reports state rather than acting as a mode switch, so it takes
-   its colour from how good the fix is, not from being "pressed". */
-#cLocate{font-family:var(--f-mono);font-size:11.5px}
-#cLocate[data-s="ok"]{background:var(--surface);border-color:var(--st-set);color:var(--st-set)}
-#cLocate[data-s="weak"]{background:var(--surface);border-color:var(--st-toset);color:var(--st-toset)}
-#cLocate[data-s="wait"]{background:var(--surface);border-color:var(--st-toset);color:var(--st-toset)}
-#cLocate[data-s="err"]{background:var(--surface);border-color:var(--st-missing);color:var(--st-missing)}
-#cLocate[data-s="off"]{background:var(--surface);border-color:var(--line);color:var(--muted)}
-/* Hidden on a phone, where it would eat a band of the plan — the crew knows
-   what they set. Shown from 900px, where the plan is being reviewed. */
-.legend{display:none;flex-wrap:wrap;gap:10px;align-items:center;
-  background:color-mix(in srgb,var(--surface) 88%,transparent);
-  border:1px solid var(--line-soft);border-radius:8px;padding:5px 9px;backdrop-filter:blur(5px)}
-.legend span{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mono);
-  font-size:10px;color:var(--muted);white-space:nowrap;letter-spacing:.02em}
+.hudbar{display:flex;align-items:center;gap:8px;border-radius:calc(var(--r) + 4px);padding:6px;flex-wrap:nowrap}
+.plantbtn{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 15px 0 12px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);font:700 15px/1 var(--f-cond);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);flex:none}
+.plantbtn[aria-pressed="true"]{background:var(--st-set);border-color:var(--st-set);color:#fff}
+.whochip{min-height:46px;max-width:30vw;min-width:0;border:1px dashed var(--line);border-radius:var(--r);padding:0 10px;background:var(--surface-2);font:600 13px/1 var(--f-ui);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:none}
+.gps{display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 10px;border-radius:var(--r);border:1px solid var(--line);background:var(--surface);font:600 12px/1 var(--f-mono);white-space:nowrap;flex:none;color:var(--muted)}
+.gps::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+#cLocate[data-s="ok"]{color:var(--st-set);border-color:color-mix(in srgb,var(--st-set) 50%,var(--line))}
+#cLocate[data-s="weak"],#cLocate[data-s="wait"]{color:var(--st-toset);border-color:color-mix(in srgb,var(--st-toset) 50%,var(--line))}
+#cLocate[data-s="err"]{color:var(--st-missing);border-color:color-mix(in srgb,var(--st-missing) 50%,var(--line))}
+#cLocate[data-s="off"]{color:var(--faint)}
+.hint{align-self:flex-start;max-width:calc(100% - 64px);font:500 12.5px/1.35 var(--f-mono);color:var(--ink);text-align:left;border-radius:8px;padding:7px 11px;min-height:34px}
+.addbtn{flex:none;margin-left:auto}
+.legend{display:none;flex-wrap:wrap;gap:12px;align-items:center;border-radius:8px;padding:6px 10px;align-self:flex-start}
+.legend span{display:inline-flex;align-items:center;gap:5px;font-family:var(--f-mono);font-size:10.5px;color:var(--muted);white-space:nowrap}
 .legend svg{flex:none;color:var(--plan-ink)}
-.readout{font-family:var(--f-mono);font-size:11.5px;font-variant-numeric:tabular-nums;color:var(--muted);background:color-mix(in srgb,var(--surface) 85%,transparent);border:1px solid var(--line-soft);border-radius:8px;padding:5px 8px}
+.banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:4;display:flex;align-items:center;gap:10px;max-width:calc(100% - 90px);background:var(--accent);color:var(--on-accent);border-radius:var(--r);padding:6px 6px 6px 14px;box-shadow:var(--shadow);font-weight:600;font-size:13.5px}
+.banner button{border:0;border-radius:calc(var(--r) - 2px);padding:0 12px;min-height:36px;font-weight:700;background:color-mix(in srgb,var(--on-accent) 22%,transparent);color:inherit;flex:none}
+.planempty{position:absolute;inset:0;display:grid;place-items:center;padding:24px;z-index:1}
+.planempty .card{max-width:360px;padding:22px;text-align:center;box-shadow:var(--shadow)}
+.planempty h3{font:700 20px/1.2 var(--f-cond);letter-spacing:.04em;text-transform:uppercase;margin:0 0 8px}
+.planempty p{margin:0 0 16px;color:var(--muted);font-size:14px}
 
-/* ---- list ---- */
+/* ---- pillar list ---- */
 .plist{display:flex;flex-direction:column;gap:8px}
-.prow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:11px 12px;text-align:left;width:100%}
+.prow{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:var(--r);padding:10px 12px;text-align:left;width:100%;min-height:58px}
 .prow:hover{border-color:var(--accent)}
-.pno{font:700 16px/1 var(--f-cond);letter-spacing:.03em;text-transform:uppercase;background:var(--surface-2);border:1px solid var(--line-soft);border-radius:calc(var(--r) - 3px);min-width:48px;padding:9px 6px;text-align:center}
+.prow:active{background:var(--surface-2)}
+.prow:has(.pill[data-k="set"]){border-left-color:var(--st-set)}
+.prow:has(.pill[data-k="to_set"]){border-left-color:var(--st-toset)}
+.prow:has(.pill[data-k="found"]){border-left-color:var(--st-found)}
+.prow:has(.pill[data-k="rebuilt"]){border-left-color:var(--st-rebuilt)}
+.prow:has(.pill[data-k="missing"]){border-left-color:var(--st-missing)}
+.pno{font:700 16px/1 var(--f-cond);letter-spacing:.04em;text-transform:uppercase;min-width:48px;text-align:center}
 .pmeta{min-width:0}
 .pmeta b{display:block;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pmeta span{display:block;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.searchrow{display:flex;gap:8px;margin-bottom:10px}
-.counts{display:grid;grid-template-columns:repeat(auto-fit,minmax(74px,1fr));gap:8px;margin-bottom:12px}
-.cnt{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:9px 10px}
-.cnt b{display:block;font:700 20px/1.1 var(--f-cond);font-variant-numeric:tabular-nums}
-.cnt span{font:600 10px/1 var(--f-ui);letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
-.cnt[data-k] b{color:var(--k)}
+.pmeta span{display:block;font-family:var(--f-mono);font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.more{margin-top:4px}
+.searchrow{display:flex;gap:8px;margin-bottom:12px}
 
-/* ---- sheet / modal ---- */
-.scrim{position:fixed;inset:0;background:rgba(8,14,16,.5);z-index:40;display:flex;align-items:flex-end;justify-content:center}
-.sheet{background:var(--surface);width:100%;max-width:560px;max-height:92%;border-radius:16px 16px 0 0;border:1px solid var(--line);border-bottom:0;display:flex;flex-direction:column;box-shadow:var(--shadow);animation:up .18s ease-out}
-@keyframes up{from{transform:translateY(14px)}}
-@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
-.sheet header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line-soft);flex:none}
-.sheet header h2{margin:0;font:700 16px/1.2 var(--f-cond);flex:1;min-width:0}
-.sheet .body{overflow-y:auto;padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom,0px))}
-.sheet footer{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,env(safe-area-inset-bottom,0px));border-top:1px solid var(--line-soft);flex:none}
-.sheet footer .btn{flex:1}
-.x{border:0;background:var(--surface-2);border-radius:8px;width:34px;height:34px;display:grid;place-items:center;font-size:18px;color:var(--muted);flex:none}
+/* ---- sheets: a bottom sheet on a phone, a dialog on a desk ---- */
+.scrim{position:fixed;inset:0;background:rgba(8,14,16,.52);z-index:40;display:flex;align-items:flex-end;justify-content:center;padding-bottom:var(--kb)}
+.sheet{background:var(--surface);width:100%;max-width:560px;max-height:calc(100% - 24px - var(--sat));border-radius:16px 16px 0 0;border:1px solid var(--line);border-bottom:0;display:flex;flex-direction:column;box-shadow:var(--shadow);animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(16px);opacity:.6}}
+.sheet header{display:flex;align-items:center;gap:10px;padding:14px 12px 14px 18px;border-bottom:1px solid var(--line-soft);flex:none;border-top:var(--titleblock);border-radius:16px 16px 0 0}
+.sheet header h2{margin:0;font:700 19px/1.2 var(--f-cond);letter-spacing:.03em;text-transform:uppercase;flex:1;min-width:0;outline:none}
+.sheet .body{overflow-y:auto;padding:16px 18px;overscroll-behavior:contain}
+.sheet footer{display:flex;gap:8px;padding:12px 16px;padding-bottom:max(12px,var(--sab));border-top:1px solid var(--line-soft);flex:none;flex-wrap:wrap}
+.sheet footer .btn{flex:1 1 auto}
+.sheet footer .btn.quiet{flex:0 0 auto;margin-right:auto}
+.x{border:0;background:var(--surface-2);border-radius:var(--r);width:44px;height:44px;display:grid;place-items:center;color:var(--muted);flex:none}
+@media (min-width:700px){
+  .scrim{align-items:center;padding:24px}
+  .sheet{border-radius:14px;border-bottom:1px solid var(--line);max-height:min(88vh,860px)}
+  .sheet header{border-radius:14px 14px 0 0}
+  .sheet footer{padding-bottom:12px}
+}
 
-#updateBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top,0px));
-  z-index:70;display:flex;align-items:center;gap:12px;background:var(--accent);color:var(--on-accent);
-  border-radius:var(--r);padding:8px 8px 8px 14px;box-shadow:var(--shadow);font-size:13.5px;font-weight:600;
-  max-width:calc(100% - 24px)}
-#updateBar button{border:0;border-radius:calc(var(--r) - 2px);padding:7px 12px;font-weight:700;
-  background:color-mix(in srgb,var(--on-accent) 22%,transparent);color:inherit;flex:none}
-#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(74px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:999px;font-size:13.5px;font-weight:500;z-index:60;box-shadow:var(--shadow);max-width:min(90vw,440px);text-align:center}
+/* ---- messages ---- */
+#updateBar{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + var(--sat));z-index:70;display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--surface);border-radius:var(--r);padding:6px 6px 6px 14px;box-shadow:var(--shadow);font-size:13.5px;font-weight:600;max-width:calc(100% - 24px)}
+#updateBar button{border:0;border-radius:calc(var(--r) - 2px);padding:0 14px;min-height:36px;font-weight:700;background:var(--accent);color:var(--on-accent);flex:none}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(140px + var(--sab));background:var(--ink);color:var(--surface);padding:11px 16px;border-radius:var(--r);font-size:13.5px;font-weight:500;z-index:60;box-shadow:var(--shadow);max-width:min(92vw,460px);text-align:left;display:flex;gap:10px;align-items:flex-start;border-left:4px solid var(--faint)}
+#toast[data-k="ok"]{border-left-color:var(--st-set)}
+#toast[data-k="warn"]{border-left-color:var(--st-toset)}
+#toast[data-k="err"]{border-left-color:var(--st-missing)}
+#busy{position:fixed;left:50%;transform:translateX(-50%);top:calc(70px + var(--sat));z-index:65;display:flex;align-items:center;gap:10px;padding:9px 14px;border-radius:999px;font-size:13px;font-weight:600}
+.spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--accent);animation:rot .8s linear infinite;flex:none}
+@keyframes rot{to{transform:rotate(360deg)}}
+.err{background:color-mix(in srgb,var(--st-missing) 11%,transparent);border:1px solid color-mix(in srgb,var(--st-missing) 38%,transparent);color:var(--st-missing);border-radius:var(--r);padding:10px 12px;font-size:13.5px;margin:0 0 12px}
+.warn{background:color-mix(in srgb,var(--st-toset) 11%,transparent);border:1px solid color-mix(in srgb,var(--st-toset) 38%,transparent);color:var(--st-toset);border-radius:var(--r);padding:10px 12px;font-size:13.5px;margin:0 0 12px}
+.note{font-size:13px;color:var(--muted);margin:8px 0 0}
 
-.photo{width:100%;border-radius:9px;border:1px solid var(--line);display:block;aspect-ratio:4/3;object-fit:cover;background:var(--surface-2)}
-.kv{display:flex;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:14px}
+/* ---- sign-in: the app's title block ---- */
+.authwrap{flex:1;display:grid;place-items:center;padding-top:calc(24px + var(--sat));padding-bottom:24px}
+.tblock{width:100%;max-width:400px;background:var(--surface);border:var(--titleblock);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
+.tblock .tb-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.tblock .tb-meta{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line)}
+.tblock .tb-meta div{padding:9px 20px 10px;font-size:13px}
+.tblock .tb-meta div + div{border-left:1px solid var(--line)}
+.tblock .tb-meta span{display:block;font:600 10px/1.2 var(--f-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:3px}
+.tblock form{padding:18px 20px 20px}
+.tb-sheet{font:600 11px/1 var(--f-mono);color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:5px 7px}
+
+/* ---- job list ---- */
+.joblist{display:flex;flex-direction:column;gap:8px}
+.jrow{display:grid;grid-template-columns:1fr auto;gap:4px 12px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;min-height:64px}
+.jrow:hover{border-color:var(--accent)}
+.jrow:active{background:var(--surface-2)}
+.jrow b{display:block;font-size:15px;font-weight:600;grid-column:1}
+.jrow > span:not([class]){display:block;font-size:12.5px;color:var(--muted);grid-column:1}
+.jrow .jn{font:600 11.5px/1 var(--f-mono);color:var(--accent-ink);grid-column:1}
+.jrow .jtag{grid-column:2;grid-row:1 / span 3;font:600 10.5px/1 var(--f-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:5px 8px;white-space:nowrap}
+.jrow .jtag[data-last]{color:var(--accent-ink);border-color:var(--accent)}
+.skel{height:64px;border-radius:var(--r);background:linear-gradient(90deg,var(--surface) 0%,var(--surface-2) 50%,var(--surface) 100%);background-size:200% 100%;animation:shimmer 1.2s infinite;border:1px solid var(--line-soft)}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+/* ---- job tab: a dashboard ---- */
+.dash{display:grid;gap:14px}
+.headline{padding:18px}
+.headline .big{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.headline .big b{font:700 46px/1 var(--f-cond);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.headline .big span{font:600 15px/1.2 var(--f-ui);color:var(--muted)}
+.headline .pct{margin-left:auto;font:700 22px/1 var(--f-mono);color:var(--st-set)}
+.bar{height:10px;border-radius:999px;background:var(--sunk);overflow:hidden;display:flex;margin:14px 0 10px}
+.bar i{display:block;height:100%}
+.legendrow{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted)}
+.legendrow span{display:inline-flex;align-items:center;gap:6px}
+.legendrow i{width:9px;height:9px;border-radius:2px;display:inline-block}
+.legendrow b{color:var(--ink);font-family:var(--f-mono)}
+h2.sec{font:700 13px/1 var(--f-cond);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line-soft);font-size:14px}
 .kv:last-child{border-bottom:0}
 .kv dt{color:var(--muted)}
 .kv dd{margin:0;font-weight:600;text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
-.note{font-size:12.5px;color:var(--muted);margin:8px 0 0}
-h2.sec{font:700 13px/1 var(--f-cond);letter-spacing:.7px;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
-h2.sec:first-child{margin-top:0}
-.total{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:14px 0 2px}
-.total b{font:700 30px/1 var(--f-cond);font-variant-numeric:tabular-nums}
-.bar{height:8px;border-radius:999px;background:var(--sunk);overflow:hidden;display:flex;margin:12px 0 4px}
-.bar i{display:block;height:100%}
-.auth{margin:auto;width:100%;max-width:360px;padding-block:28px}
-.auth .mark{width:38px;height:38px;border-radius:8px;margin-bottom:14px}
-.auth h2{font:700 22px/1.15 var(--f-cond);margin:0 0 4px}
-.auth p.sub{color:var(--muted);font-size:13.5px;margin:0 0 20px}
-.err{background:color-mix(in srgb,var(--st-missing) 12%,transparent);border:1px solid color-mix(in srgb,var(--st-missing) 35%,transparent);color:var(--st-missing);border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:12px}
-.warn{background:color-mix(in srgb,var(--st-toset) 12%,transparent);border:1px solid color-mix(in srgb,var(--st-toset) 35%,transparent);color:var(--st-toset);border-radius:9px;padding:10px 12px;font-size:13px;margin-bottom:12px}
-.joblist{display:flex;flex-direction:column;gap:8px}
-.jrow{display:block;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px}
-.jrow:hover{border-color:var(--accent)}
-.jrow b{display:block;font-size:14.5px;font-weight:600}
-.jrow span{display:block;font-size:12px;color:var(--muted);margin-top:2px}
-.jrow .jn{font-family:var(--f-mono);font-size:11px;color:var(--accent);font-weight:600}
+.total{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 0 2px}
+.total b{font:700 32px/1 var(--f-cond);font-variant-numeric:tabular-nums}
+.photo{width:100%;border-radius:var(--r);border:1px solid var(--line);display:block;aspect-ratio:4/3;object-fit:cover;background:var(--surface-2)}
 
-/* ---- wide screens: tabs become a left rail, the plan gains a register ---- */
+/* ---- wide screens ---- */
 #v-plan{flex-direction:row}
 #v-plan .planwrap{min-width:0}
 .side{display:none}
-.side-h{flex:none;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid var(--line)}
-.side-h b{font:700 16px/1 var(--f-cond);letter-spacing:.06em;text-transform:uppercase}
-.side-h span{font-family:var(--f-mono);font-size:10px;color:var(--faint);white-space:nowrap}
-.side-l{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:10px 11px;display:grid;gap:7px;align-content:start}
-.side-l .prow{padding:9px 10px}
-.side-l .pno{min-width:42px;font-size:14px;padding:7px 5px}
+.side-h{flex:none;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.side-h b{font:700 16px/1 var(--f-cond);letter-spacing:.08em;text-transform:uppercase}
+.side-h span{font-family:var(--f-mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.side-l{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:10px 11px;display:flex;flex-direction:column;gap:7px}
+.side-l .prow{padding:8px 10px;min-height:50px}
+.side-l .pno{min-width:40px;font-size:15px}
 .side-f{flex:none;display:flex;gap:7px;padding:10px 11px;border-top:1px solid var(--line)}
 .side-f .btn{flex:1}
-
+@media (min-width:700px){ .dash{grid-template-columns:1fr 1fr} .dash .span2{grid-column:1 / -1} }
 @media (min-width:900px){
-  #app:not(.solo){display:grid;grid-template-columns:208px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
+  #app:not(.solo){display:grid;grid-template-columns:212px minmax(0,1fr);grid-template-rows:auto minmax(0,1fr)}
   #app:not(.solo) .topbar{grid-column:1/-1}
   #app:not(.solo) main{grid-column:2;grid-row:2;min-width:0}
-  #app:not(.solo) .tabbar{
-    grid-column:1;grid-row:2;flex-direction:column;gap:2px;align-content:start;
-    border-top:none;border-right:1px solid var(--line);padding:12px 9px;
-  }
-  #app:not(.solo) .tabbar button{
-    flex:none;flex-direction:row;justify-content:flex-start;gap:10px;width:100%;
-    padding:10px 11px;border-radius:var(--r);border-top:0;margin-top:0;font-size:11.5px;
-  }
+  #app:not(.solo) .tabbar{grid-column:1;grid-row:2;flex-direction:column;gap:2px;border-top:none;border-right:1px solid var(--line);padding:12px 9px}
+  #app:not(.solo) .tabbar button{flex:none;flex-direction:row;justify-content:flex-start;gap:12px;width:100%;min-height:46px;padding:0 12px;border-radius:var(--r);border-top:0;margin-top:0;font-size:12px}
   #app:not(.solo) .tabbar button[aria-selected="true"]{background:var(--accent-soft)}
   .legend{display:flex}
+  .readout{display:block}
 }
 @media (min-width:1100px){
-  .side{display:flex;flex-direction:column;width:316px;flex:none;min-height:0;
-        border-left:1px solid var(--line);background:var(--surface)}
+  .side{display:flex;flex-direction:column;width:320px;flex:none;min-height:0;border-left:1px solid var(--line);background:var(--surface)}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition:none!important}
 }
 </style>
 <link rel="manifest" href="manifest.webmanifest">
@@ -257,191 +333,232 @@ h2.sec:first-child{margin-top:0}
 <meta name="mobile-web-app-capable" content="yes">
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-mark" viewBox="0 0 24 24"><path d="M12 4 20 19H4z" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/><circle cx="12" cy="4.5" r="2.1" fill="#fff"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+  <symbol id="i-plan" viewBox="0 0 24 24"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20"/></symbol>
+  <symbol id="i-pillar" viewBox="0 0 24 24"><path d="M12 3 7 21h10z"/><path d="M9.2 13h5.6"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V10m5 10V4m5 16v-7m5 7V8"/></symbol>
+  <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></symbol>
+  <symbol id="i-corners" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1"/><rect x="3" y="3" width="4" height="4" fill="currentColor"/><rect x="17" y="3" width="4" height="4" fill="currentColor"/><rect x="3" y="17" width="4" height="4" fill="currentColor"/><rect x="17" y="17" width="4" height="4" fill="currentColor"/></symbol>
+  <symbol id="i-sat" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.6 2.4 3.6 5.2 3.6 8.5s-1 6.1-3.6 8.5c-2.6-2.4-3.6-5.2-3.6-8.5s1-6.1 3.6-8.5z"/></symbol>
+  <symbol id="i-align" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/><path d="m9 6 3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3"/></symbol>
+  <symbol id="i-snap" viewBox="0 0 24 24"><path d="M6 4v7a6 6 0 0 0 12 0V4"/><path d="M6 8h4M14 8h4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6v18h12V7z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></symbol>
+  <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+</svg>
 <div id="app">
 
   <header class="topbar gut" id="topbar" hidden>
-    <span class="mark" aria-hidden="true"></span>
-    <button class="backbtn" id="toJobs" type="button" aria-label="Back to all jobs">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-    </button>
+    <span class="mark" aria-hidden="true"><svg><use href="#i-mark"/></svg></span>
+    <button class="backbtn" id="toJobs" type="button" aria-label="Back to all jobs"><svg class="ic"><use href="#i-back"/></svg></button>
     <div class="grow">
       <h1 id="barTitle">Pillar Flow</h1>
       <p class="sub" id="barSub">No job open</p>
     </div>
-    <button class="synclamp" id="lamp" data-s="off" type="button"><span class="led"></span><span id="lampTxt">Offline</span></button>
+    <button class="synclamp" id="lamp" data-s="off" type="button" aria-live="polite"><span class="led"></span><span id="lampTxt">Offline</span></button>
   </header>
 
   <main>
     <!-- SIGN IN -->
     <section class="view" id="v-auth">
-      <div class="scroll gut" style="display:flex">
-        <form class="auth" id="authForm">
-          <span class="mark" aria-hidden="true"></span>
-          <h2>Pillar Flow</h2>
-          <p class="sub">Field log for concrete pillars — Captured Reality Inc.</p>
-          <div class="err" id="authErr" hidden></div>
-          <div class="field"><label class="lbl" for="aEmail">Email</label>
-            <input class="inp" id="aEmail" type="email" autocomplete="username" inputmode="email" required></div>
-          <div class="field"><label class="lbl" for="aPass">Password</label>
-            <input class="inp" id="aPass" type="password" autocomplete="current-password" required></div>
-          <button class="btn pri wide" id="aGo" type="submit">Sign in</button>
-          <p class="note">Same login as the office system. Sign in once with signal — after that the app opens and records offline.</p>
-        </form>
+      <div class="scroll gut authwrap">
+        <div class="tblock">
+          <div class="tb-head">
+            <div class="wordmark"><span class="mark" aria-hidden="true"><svg><use href="#i-mark"/></svg></span><b>Pillar Flow</b></div>
+            <span class="tb-sheet">FIELD LOG</span>
+          </div>
+          <div class="tb-meta">
+            <div><span>Prepared by</span>Captured Reality Inc.</div>
+            <div><span>Office</span>San Ignacio, Belize</div>
+          </div>
+          <form id="authForm">
+            <div class="err" id="authErr" hidden></div>
+            <div class="field"><label class="lbl" for="aEmail">Email</label>
+              <input class="inp" id="aEmail" type="email" autocomplete="username" inputmode="email" required></div>
+            <div class="field"><label class="lbl" for="aPass">Password</label>
+              <input class="inp" id="aPass" type="password" autocomplete="current-password" required></div>
+            <button class="btn pri wide" id="aGo" type="submit">Sign in</button>
+            <p class="note">Same sign-in as the office system. Sign in once with signal; after that the app opens and records with none.</p>
+          </form>
+        </div>
       </div>
     </section>
 
     <!-- JOBS -->
     <section class="view" id="v-jobs" hidden>
-      <div class="scroll gut">
+      <div class="scroll gut"><div class="wrap">
         <div class="searchrow">
-          <input class="inp" id="jobQ" type="search" placeholder="Search job, client, location" aria-label="Search jobs">
-          <button class="btn sm" id="jobRefresh" type="button" title="Reload jobs">↻</button>
+          <input class="inp" id="jobQ" type="search" placeholder="Search job, client or place" aria-label="Search jobs">
+          <button class="btn iconbtn" id="jobRefresh" type="button" aria-label="Reload jobs" title="Reload jobs"><svg class="ic"><use href="#i-refresh"/></svg></button>
         </div>
         <div class="warn" id="setupWarn" hidden></div>
         <div class="joblist" id="jobList"></div>
-      </div>
+      </div></div>
     </section>
 
     <!-- PLAN -->
     <section class="view" id="v-plan" hidden>
       <div class="planwrap">
-        <canvas id="cv"></canvas>
-        <div class="chipbar gut">
-          <button class="chip" id="cPlant" type="button" aria-pressed="false">Plant</button>
-          <button class="chip" id="cWho" type="button" hidden>Who?</button>
-          <button class="chip" id="cLocate" type="button" aria-pressed="false">GPS…</button>
-          <button class="chip" id="cSnap" type="button" aria-pressed="true">Snap</button>
-          <button class="chip" id="cFit" type="button">Fit</button>
-          <button class="chip" id="cLayers" type="button">Layers</button>
-          <button class="chip" id="cCorners" type="button">Corners</button>
-          <button class="chip" id="cSat" type="button" aria-pressed="false">Satellite</button>
-          <button class="chip" id="cAlign" type="button" hidden>Align</button>
-          <span class="readout" id="readout">—</span>
+        <canvas id="cv" role="img" aria-label="Plan of the job's lots with pillar markers. Use the Pillars tab for the same records as a list."></canvas>
+        <span class="readout glass" id="readout">—</span>
+        <div class="rail" role="toolbar" aria-label="Plan tools" aria-orientation="vertical">
+          <button class="tool glass" id="cFit" type="button" aria-label="Fit the drawing to the screen" title="Fit"><svg class="ic"><use href="#i-fit"/></svg></button>
+          <button class="tool glass" id="cLayers" type="button" aria-label="Layers" title="Layers"><svg class="ic"><use href="#i-layers"/></svg></button>
+          <button class="tool glass" id="cCorners" type="button" aria-label="A pillar on every corner" title="Corners"><svg class="ic"><use href="#i-corners"/></svg></button>
+          <hr>
+          <button class="tool glass" id="cSat" type="button" aria-pressed="false" aria-label="Satellite imagery" title="Satellite"><svg class="ic"><use href="#i-sat"/></svg></button>
+          <button class="tool glass" id="cAlign" type="button" aria-label="Line up the imagery" title="Align" hidden><svg class="ic"><use href="#i-align"/></svg></button>
+          <button class="tool glass" id="cSnap" type="button" aria-pressed="true" aria-label="Snap taps to drawing corners" title="Snap"><svg class="ic"><use href="#i-snap"/></svg></button>
+          <hr>
+          <button class="tool glass" id="loadDxf" type="button" aria-label="Load the job's DXF drawing" title="Load DXF"><svg class="ic"><use href="#i-file"/></svg></button>
         </div>
-        <div class="empty gut" id="planEmpty" style="position:absolute;inset:0;display:grid;place-content:center">
-          <h3>No plan loaded</h3>
-          <p>Load the job's DXF, then tap a lot corner to drop a pillar there. The file stays on this phone and uploads when you have signal.</p>
-          <button class="btn pri" id="loadDxf2" type="button">Load DXF</button>
+        <div class="banner" id="moveBar" hidden role="status">
+          <span id="moveTxt">Tap the new position</span>
+          <button type="button" id="moveCancel">Cancel</button>
+        </div>
+        <div class="planempty" id="planEmpty">
+          <div class="card">
+            <h3>No drawing yet</h3>
+            <p>Load the job's DXF. Then <b>Corners</b> puts a pillar on every lot corner, and the crew taps each one as it is planted.</p>
+            <button class="btn pri" id="loadDxf2" type="button"><svg class="ic"><use href="#i-file"/></svg>Load DXF</button>
+          </div>
         </div>
         <div class="planhud gut">
-          <button class="btn sm" id="loadDxf" type="button">DXF</button>
-          <button class="btn sm pri" id="addHere" type="button">Add pillar</button>
-          <span class="readout" id="hint">Tap a corner to place a pillar</span>
-          <div class="legend" id="legend" hidden></div>
+          <div class="legend glass" id="legend" hidden></div>
+          <button class="hint glass" id="hint" type="button" aria-live="polite">Tap a corner to place a pillar</button>
+          <div class="hudbar glass">
+            <button class="plantbtn" id="cPlant" type="button" aria-pressed="false"><svg class="ic"><use href="#i-check"/></svg>Plant</button>
+            <button class="whochip" id="cWho" type="button" hidden aria-label="Who is planting">Who?</button>
+            <button class="gps" id="cLocate" type="button" aria-pressed="false">GPS…</button>
+            <button class="btn iconbtn addbtn" id="addHere" type="button" aria-label="Add a pillar at the centre of the screen" title="Add pillar"><svg class="ic"><use href="#i-plus"/></svg></button>
+          </div>
         </div>
       </div>
       <aside class="side" id="planSide" aria-label="Pillar register">
         <div class="side-h"><b>Register</b><span id="sideCount">0 pillars</span></div>
         <div class="side-l" id="sideList"></div>
         <div class="side-f">
-          <button class="btn sm" id="sideCsv" type="button">CSV</button>
-          <button class="btn sm" id="sideDxf" type="button">DXF</button>
+          <button class="btn sm" id="sideCsv" type="button">Export CSV</button>
+          <button class="btn sm" id="sideDxf" type="button">Export DXF</button>
         </div>
       </aside>
     </section>
 
     <!-- PILLARS -->
     <section class="view" id="v-list" hidden>
-      <div class="scroll gut">
-        <div class="counts" id="counts"></div>
+      <div class="scroll gut"><div class="wrap">
         <div class="searchrow">
-          <input class="inp" id="q" type="search" placeholder="Search pillar no, lot, notes" aria-label="Search pillars">
-          <button class="btn sm pri" id="addNew" type="button">+</button>
+          <input class="inp" id="q" type="search" placeholder="Search pillar no, lot or notes" aria-label="Search pillars">
+          <button class="btn pri iconbtn" id="addNew" type="button" aria-label="Add a pillar" title="Add a pillar"><svg class="ic"><use href="#i-plus"/></svg></button>
         </div>
-        <div class="seg" id="filters" style="margin-bottom:8px"></div>
-        <div class="seg types" id="typeFilters" style="margin-bottom:12px" hidden></div>
+        <div class="seg" id="filters" style="margin-bottom:8px" role="group" aria-label="Filter by status"></div>
+        <div class="seg types" id="typeFilters" style="margin-bottom:12px" hidden role="group" aria-label="Filter by type"></div>
         <div class="plist" id="plist"></div>
-      </div>
+      </div></div>
     </section>
 
-    <!-- JOB / COSTS -->
+    <!-- JOB -->
     <section class="view" id="v-job" hidden>
-      <div class="scroll gut">
-        <h2 class="sec">Pillars used</h2>
-        <div class="card" style="padding:14px">
+      <div class="scroll gut"><div class="wrap dash">
+        <div class="card headline span2">
+          <h2 class="sec">Pillars planted</h2>
+          <div class="big"><b class="mono" id="hPlanted">0</b><span id="hOf">of 0 corners</span><span class="pct" id="hPct">0%</span></div>
           <div class="bar" id="useBar"></div>
-          <dl style="margin:6px 0 0">
-            <div class="kv"><dt>CP planted</dt><dd id="kUsed">0</dd></div>
-            <div class="kv"><dt>Corners needing CP</dt><dd id="kToSet">0</dd></div>
-            <div class="kv"><dt>Found existing</dt><dd id="kFound">0</dd></div>
-            <div class="kv"><dt>Missing / destroyed</dt><dd id="kMissing">0</dd></div>
-          </dl>
+          <div class="legendrow">
+            <span><i style="background:var(--st-set)"></i>Planted <b id="kUsed">0</b></span>
+            <span><i style="background:var(--st-toset)"></i>Needs CP <b id="kToSet">0</b></span>
+            <span><i style="background:var(--st-found)"></i>Found <b id="kFound">0</b></span>
+            <span><i style="background:var(--st-missing)"></i>Missing <b id="kMissing">0</b></span>
+          </div>
         </div>
 
-        <h2 class="sec">What went in the ground</h2>
-        <div class="card" style="padding:14px">
+        <div class="card pad">
+          <h2 class="sec">Planted by day</h2>
+          <dl id="dayBreak" style="margin:0"></dl>
+        </div>
+        <div class="card pad">
+          <h2 class="sec">Planted by</h2>
+          <dl id="whoBreak" style="margin:0"></dl>
+        </div>
+        <div class="card pad">
+          <h2 class="sec">What went in the ground</h2>
           <dl id="typeBreak" style="margin:0"></dl>
         </div>
 
-        <h2 class="sec">Planted by day</h2>
-        <div class="card" style="padding:14px">
-          <dl id="dayBreak" style="margin:0"></dl>
-        </div>
-
-        <h2 class="sec">Planted by</h2>
-        <div class="card" style="padding:14px">
-          <dl id="whoBreak" style="margin:0"></dl>
-        </div>
-
-        <h2 class="sec">Cost</h2>
-        <div class="card" style="padding:14px">
-          <div class="field" style="margin-bottom:10px">
+        <div class="card pad">
+          <h2 class="sec">Cost</h2>
+          <div class="field" style="margin-bottom:6px">
             <label class="lbl" for="unitCost">Cost per pillar (BZD)</label>
             <input class="inp mono" id="unitCost" type="number" step="0.01" min="0" inputmode="decimal">
-            <p class="note" id="rateNote" hidden>From the <b>concrete pillar</b> material in your database. Changing it here changes it for everyone.</p>
+            <p class="note" id="rateNote" hidden>The <b>concrete pillar</b> rate in your database. Changing it here changes it for everyone.</p>
           </div>
-          <div class="total"><span>Pillars set &times; rate</span><b class="mono" id="costTotal">$0.00</b></div>
-          <p class="note" id="costNote">Only pillars marked <b>Set</b> or <b>Rebuilt</b> are counted as used.</p>
+          <div class="total"><span>Concrete pillars planted &times; rate</span><b class="mono" id="costTotal">$0.00</b></div>
+          <p class="note" id="costNote">Only concrete pillars marked Planted or Rebuilt are counted.</p>
           <button class="btn wide" id="postCost" type="button" style="margin-top:12px" hidden>Post to job costs</button>
-          <p class="note" id="adminNote">The rate and posting costs to the job are set at the office by an admin.</p>
+          <p class="note" id="adminNote">The rate, and posting the cost to the job, are done at the office by an admin.</p>
           <p class="note" id="postedNote" hidden></p>
         </div>
 
-        <h2 class="sec">Export</h2>
-        <div class="card" style="padding:14px;display:flex;flex-direction:column;gap:8px">
-          <button class="btn wide" id="expCsv" type="button">Pillar list (CSV)</button>
-          <button class="btn wide" id="expDxf" type="button">Pillar points (DXF)</button>
-          <button class="btn wide" id="impCsv" type="button">Import points from CSV</button>
+        <div class="card pad">
+          <h2 class="sec">Export and import</h2>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn wide" id="expCsv" type="button">Pillar list (CSV)</button>
+            <button class="btn wide" id="expDxf" type="button">Pillar points (DXF)</button>
+            <button class="btn wide" id="impCsv" type="button">Import points from CSV</button>
+          </div>
         </div>
 
-        <h2 class="sec">This device</h2>
-        <div class="card" style="padding:14px">
+        <div class="card pad span2">
+          <h2 class="sec">This phone</h2>
           <dl style="margin:0">
-            <div class="kv"><dt>Signed in</dt><dd id="kUser" style="font-family:var(--f-ui);font-weight:600">—</dd></div>
+            <div class="kv"><dt>Signed in</dt><dd id="kUser" style="font-family:var(--f-ui)">—</dd></div>
             <div class="kv"><dt>Waiting to sync</dt><dd id="kPending">0</dd></div>
-            <div class="kv"><dt>Last synced</dt><dd id="kLast" style="font-family:var(--f-ui);font-weight:600">Never</dd></div>
+            <div class="kv"><dt>Last synced</dt><dd id="kLast" style="font-family:var(--f-ui)">Never</dd></div>
             <div class="kv"><dt>App version</dt><dd id="kBuild" style="font-size:11.5px">—</dd></div>
           </dl>
-          <div style="display:flex;gap:8px;margin-top:12px">
-            <button class="btn" id="syncBtn" type="button" style="flex:1">Sync now</button>
+          <div class="field" style="margin:14px 0 0">
+            <span class="lbl">Theme</span>
+            <div class="seg" id="themeSeg" role="group" aria-label="Theme">
+              <button type="button" data-th="auto">Match phone</button>
+              <button type="button" data-th="light">Day</button>
+              <button type="button" data-th="dark">Night</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+            <button class="btn" id="syncBtn" type="button" style="flex:1"><svg class="ic"><use href="#i-refresh"/></svg>Sync now</button>
             <button class="btn" id="switchJob" type="button" style="flex:1">Change job</button>
           </div>
           <button class="btn wide danger" id="signOut" type="button" style="margin-top:8px">Sign out</button>
         </div>
-      </div>
+      </div></div>
     </section>
   </main>
 
-  <nav class="tabbar" id="tabbar" hidden>
-    <button type="button" data-tab="plan" aria-selected="false">
-      <svg viewBox="0 0 24 24"><path d="M3 6.5 9 4l6 2.5L21 4v13.5L15 20l-6-2.5L3 20z"/><path d="M9 4v13.5M15 6.5V20"/></svg>Plan</button>
-    <button type="button" data-tab="list" aria-selected="true">
-      <svg viewBox="0 0 24 24"><path d="M12 3 7 21h10z"/><circle cx="12" cy="3" r="1.4"/></svg>Pillars</button>
-    <button type="button" data-tab="job" aria-selected="false">
-      <svg viewBox="0 0 24 24"><path d="M4 20V9m5 11V4m5 16v-7m5 7V7"/></svg>Job</button>
+  <nav class="tabbar" id="tabbar" hidden aria-label="Sections">
+    <button type="button" data-tab="plan" aria-selected="false"><svg class="ic"><use href="#i-plan"/></svg>Plan</button>
+    <button type="button" data-tab="list" aria-selected="true"><svg class="ic"><use href="#i-pillar"/></svg>Pillars</button>
+    <button type="button" data-tab="job" aria-selected="false"><svg class="ic"><use href="#i-chart"/></svg>Job</button>
   </nav>
 </div>
 
 <div class="scrim" id="scrim" hidden><div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
-  <header><h2 id="sheetTitle">Pillar</h2><button class="x" id="sheetClose" type="button" aria-label="Close">&times;</button></header>
+  <header><h2 id="sheetTitle">Pillar</h2><button class="x" id="sheetClose" type="button" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></button></header>
   <div class="body" id="sheetBody"></div>
   <footer id="sheetFoot"></footer>
 </div></div>
 
 <input type="file" id="dxfPick" accept=".dxf,.DXF,text/plain" hidden>
 <input type="file" id="csvPick" accept=".csv,.txt" hidden>
-<input type="file" id="photoPick" accept="image/*" capture="environment" hidden>
+<!-- No capture attribute: the phone offers the camera or a saved photo. -->
+<input type="file" id="photoPick" accept="image/*" hidden>
 <div id="toast" hidden></div>
+<div id="busy" class="glass" hidden role="status" aria-live="polite"><span class="spin" aria-hidden="true"></span><span id="busyTxt">Working…</span></div>
 <div id="updateBar" hidden role="status">
   <span>A new version of Pillar Flow is ready.</span>
   <button type="button" id="updateGo">Reload</button>
@@ -460,7 +577,7 @@ var SB = {
 };
 // Filled in by build.sh. Shown on the Job tab so you can tell which version a
 // phone is actually running.
-var BUILD = "20261109-1615-d1f82f9";
+var BUILD = "20261110-0946-5829009";
 
 // Every corner on the drawing needs a CP; the crew plants them line by line.
 // "to_set" is the corner as it stands before they get there — pegged, no pillar.
@@ -483,7 +600,7 @@ var state = {
   user:null, job:null, jobs:[], points:[], plan:null,
   tab:"list", filter:"all", typeFilter:"all", q:"", snap:true, hiddenLayers:{},
   sat:false, satAffine:null, satDE:0, satDN:0, satOpacity:1, satZone:16, satMaxZ:18,
-  plantMode:false, crew:null,
+  plantMode:false, crew:null, rev:0, listShown:120,
   isAdmin:false, myEmployeeId:null, crewList:[], planter:null,
   locating:false, me:null, watchId:null,
   view:{s:1,tx:0,ty:0}, viewFitted:false, sel:null, moveId:null,
@@ -541,36 +658,107 @@ function fmtDate(s){
   if(d.getFullYear()!==new Date().getFullYear()) out+=" "+String(d.getFullYear()).slice(2);
   return out;
 }
-function fmt(n,d){ if(n==null||!isFinite(n)) return "—"; return Number(n).toLocaleString(undefined,{minimumFractionDigits:d==null?3:d,maximumFractionDigits:d==null?3:d}); }
-function money(n){ return "$"+Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+// One formatter per precision, reused: building a new one per number was the
+// single biggest cost of drawing a long list.
+var NF={};
+function nf(d){ return NF[d] || (NF[d]=new Intl.NumberFormat(undefined,{minimumFractionDigits:d,maximumFractionDigits:d})); }
+function fmt(n,d){ if(n==null||!isFinite(n)) return "—"; return nf(d==null?3:d).format(Number(n)); }
+function money(n){ return "$"+nf(2).format(Number(n||0)); }
+var COLLATE=new Intl.Collator(undefined,{numeric:true});
 function esc(s){ return String(s==null?"":s); }
 var toastT;
-function toast(msg){
-  var t=$("toast"); t.textContent=msg; t.hidden=false;
-  clearTimeout(toastT); toastT=setTimeout(function(){ t.hidden=true; }, 2800);
+function toast(msg, kind){
+  var t=$("toast"); if(!t) return;
+  t.textContent=msg; t.dataset.k=kind||""; t.hidden=false;
+  t.setAttribute("role", kind==="err" ? "alert" : "status");
+  clearTimeout(toastT); toastT=setTimeout(function(){ t.hidden=true; }, kind==="err" ? 5200 : 2800);
 }
-function css(name){ return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+// A busy indicator for anything slow enough to notice: opening a job, reading
+// a drawing. busy() with no text clears it.
+function busy(msg){
+  var b=$("busy"); if(!b) return;
+  if(!msg){ b.hidden=true; return; }
+  $("busyTxt").textContent=msg; b.hidden=false;
+}
+// Theme colours, read once and kept until the theme changes. Reading them from
+// the stylesheet for every marker was about 10,000 lookups per frame.
+var cssCache={};
+function css(name){
+  var v=cssCache[name];
+  if(v===undefined) v=cssCache[name]=getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return v;
+}
+function themeChanged(){ cssCache={}; requestDraw(); }
+// Theme: match the phone, or pin Day (plan sheet) / Night (model space) —
+// night is easier on the eyes at dusk, day reads better in full sun.
+function setupTheme(){
+  function apply(t){
+    if(t==="light"||t==="dark") document.documentElement.setAttribute("data-theme",t);
+    else document.documentElement.removeAttribute("data-theme");
+    var seg=$("themeSeg");
+    if(seg) [].forEach.call(seg.children,function(b){ b.setAttribute("aria-pressed", String(b.dataset.th===(t||"auto"))); });
+    themeChanged();
+  }
+  apply(ls("pf.theme")||"auto");
+  var seg=$("themeSeg");
+  if(seg) seg.addEventListener("click",function(e){
+    var b=e.target.closest("button[data-th]"); if(!b) return;
+    ls("pf.theme", b.dataset.th); apply(b.dataset.th);
+  });
+  if(window.matchMedia){
+    var mq=matchMedia("(prefers-color-scheme: dark)");
+    var on=function(){ if(!document.documentElement.hasAttribute("data-theme")) themeChanged(); };
+    if(mq.addEventListener) mq.addEventListener("change",on); else if(mq.addListener) mq.addListener(on);
+  }
+}
+// Keep a sheet's Save button above the on-screen keyboard.
+function setupKeyboard(){
+  var vv=window.visualViewport; if(!vv) return;
+  var pend=false;
+  function upd(){
+    pend=false;
+    var kb=Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+    document.documentElement.style.setProperty("--kb", (kb>60 ? Math.round(kb) : 0)+"px");
+  }
+  function q(){ if(!pend){ pend=true; requestAnimationFrame(upd); } }
+  vv.addEventListener("resize",q); vv.addEventListener("scroll",q);
+}
 
 /* ========================================================================
    Local storage (IndexedDB, with a graceful nothing-works fallback)
    ======================================================================== */
 var DB=null, dbBroken=false;
+// Version 2 adds a job index to points and plans, so opening a job reads that
+// job's records only instead of every job on the phone.
 function openDB(){
   return new Promise(function(res){
     var r;
-    try { r = indexedDB.open("pillarflow", 1); } catch(e){ dbBroken=true; return res(null); }
+    try { r = indexedDB.open("pillarflow", 2); } catch(e){ dbBroken=true; return res(null); }
     r.onupgradeneeded=function(e){
-      var db=e.target.result;
+      var db=e.target.result, t=e.target.transaction;
       if(!db.objectStoreNames.contains("kv")) db.createObjectStore("kv");
       if(!db.objectStoreNames.contains("points")) db.createObjectStore("points",{keyPath:"id"});
       if(!db.objectStoreNames.contains("plans")) db.createObjectStore("plans",{keyPath:"id"});
       if(!db.objectStoreNames.contains("photos")) db.createObjectStore("photos");
+      ["points","plans"].forEach(function(s){
+        var os=t.objectStore(s);
+        if(!os.indexNames.contains("job")) os.createIndex("job","job_id");
+      });
     };
     r.onsuccess=function(){ DB=r.result; res(DB); };
     r.onerror=function(){ dbBroken=true; res(null); };
+    r.onblocked=function(){ toast("Close Pillar Flow in your other tabs to finish updating"); };
   });
 }
 function tx(store, mode){ return DB.transaction(store, mode).objectStore(store); }
+// A failed local save is the one thing that must never be silent: it means a
+// pillar the crew just logged exists nowhere.
+var storageWarned=0;
+function storageFailed(){
+  if(Date.now()-storageWarned < 60000) return;
+  storageWarned=Date.now();
+  toast("This phone could not save — its storage may be full. Free some space before logging more.", "err");
+}
 function idbGet(store, key){
   return new Promise(function(res){
     if(!DB) return res(null);
@@ -580,10 +768,36 @@ function idbGet(store, key){
 }
 function idbPut(store, val, key){
   return new Promise(function(res){
-    if(!DB) return res(false);
+    if(!DB){ if(dbBroken) storageFailed(); return res(false); }
     try{ var r=key===undefined? tx(store,"readwrite").put(val) : tx(store,"readwrite").put(val,key);
-      r.onsuccess=function(){res(true);}; r.onerror=function(){res(false);}; }
-    catch(e){ res(false); }
+      r.onsuccess=function(){res(true);}; r.onerror=function(){ storageFailed(); res(false); }; }
+    catch(e){ storageFailed(); res(false); }
+  });
+}
+// Many records in one transaction: placing 2,500 corners is one write, not 2,500.
+function idbPutMany(store, list){
+  return new Promise(function(res){
+    if(!DB || !list.length) return res(!list.length);
+    try{
+      var t=DB.transaction(store,"readwrite"), os=t.objectStore(store);
+      list.forEach(function(v){ os.put(v); });
+      t.oncomplete=function(){ res(true); };
+      t.onerror=t.onabort=function(){ storageFailed(); res(false); };
+    }catch(e){ storageFailed(); res(false); }
+  });
+}
+// One job's records, by index; falls back to a full read on an old database.
+function idbByJob(store, jobId){
+  return new Promise(function(res){
+    if(!DB) return res([]);
+    try{
+      var os=tx(store,"readonly");
+      if(!os.indexNames.contains("job")) return idbAll(store).then(function(all){
+        res(all.filter(function(x){ return x.job_id===jobId; }));
+      });
+      var r=os.index("job").getAll(jobId);
+      r.onsuccess=function(){ res(r.result||[]); }; r.onerror=function(){ res([]); };
+    }catch(e){ res([]); }
   });
 }
 function idbAll(store){
@@ -626,13 +840,31 @@ var auth = {
         auth.set(o.j); return o.j;
       });
   },
+  // dead: the office no longer accepts this sign-in (expired, revoked, user
+  // removed). Different from no signal: the crew has to sign in again, and is
+  // told so, instead of the app retrying a dead token forever.
+  dead:false,
+  refreshing:null,
   refresh:function(){
     if(!this.session||!this.session.refresh_token) return Promise.reject(new Error("no session"));
-    return fetch(SB.url+"/auth/v1/token?grant_type=refresh_token",{
+    if(this.refreshing) return this.refreshing;           // one refresh at a time
+    var p=fetch(SB.url+"/auth/v1/token?grant_type=refresh_token",{
       method:"POST", headers:{apikey:SB.key,"content-type":"application/json"},
       body:JSON.stringify({refresh_token:this.session.refresh_token})
-    }).then(function(r){ if(!r.ok) throw new Error("refresh failed"); return r.json(); })
-      .then(function(j){ auth.set(j); return j; });
+    }).then(function(r){
+      if(r.status===400 || r.status===401 || r.status===403){ auth.markDead(); throw new Error("signed out"); }
+      if(!r.ok) throw new Error("refresh failed");        // server trouble: try again later
+      return r.json();
+    }).then(function(j){ auth.set(j); auth.dead=false; return j; });
+    this.refreshing=p;
+    p.then(function(){ auth.refreshing=null; }, function(){ auth.refreshing=null; });
+    return p;
+  },
+  markDead:function(){
+    if(this.dead) return;
+    this.dead=true;
+    if(typeof updateLamp==="function") updateLamp();
+    toast("Your sign-in has run out. Tap the status at the top to sign in again — nothing on this phone is lost.", "err");
   },
   token:function(){
     if(!this.session) return Promise.resolve(null);
@@ -640,16 +872,38 @@ var auth = {
     return this.refresh().then(function(){ return auth.session.access_token; })
       .catch(function(){ return auth.session ? auth.session.access_token : null; });
   },
-  out:function(){ this.session=null; try{ localStorage.removeItem("pf.session"); }catch(e){} }
+  // Sign out ends the session at the office too, when there is signal, so a
+  // lost phone's sign-in cannot be used again.
+  out:function(){
+    var s=this.session;
+    if(s && s.access_token && navigator.onLine){
+      fetch(SB.url+"/auth/v1/logout",{ method:"POST",
+        headers:{ apikey:SB.key, Authorization:"Bearer "+s.access_token } }).catch(function(){});
+    }
+    this.session=null; this.dead=false;
+    try{ localStorage.removeItem("pf.session"); }catch(e){}
+  }
 };
 
+function restOnce(path, opts, t){
+  var h = { apikey:SB.key, "content-type":"application/json" };
+  if(opts.headers) for(var k in opts.headers) h[k]=opts.headers[k];
+  if(t) h.Authorization = "Bearer "+t;
+  return fetch(SB.url+"/rest/v1/"+path, { method:opts.method||"GET", headers:h, body:opts.body });
+}
 function rest(path, opts){
   opts = opts || {};
-  return auth.token().then(function(t){
-    var h = { apikey:SB.key, "content-type":"application/json" };
-    if(opts.headers) for(var k in opts.headers) h[k]=opts.headers[k];
-    if(t) h.Authorization = "Bearer "+t;
-    return fetch(SB.url+"/rest/v1/"+path, { method:opts.method||"GET", headers:h, body:opts.body });
+  return auth.token().then(function(t){ return restOnce(path, opts, t); })
+  .then(function(r){
+    // A rejected token: refresh once and retry. If the refresh is refused too,
+    // the sign-in is dead and the crew is asked to sign in again.
+    if(r.status===401 && auth.session && !opts._retried){
+      return auth.refresh().then(function(){
+        opts._retried=true;
+        return restOnce(path, opts, auth.session.access_token);
+      }, function(){ return r; });
+    }
+    return r;
   }).then(function(r){
     if(!r.ok) return r.text().then(function(txt){
       var e=new Error(txt||("HTTP "+r.status)); e.status=r.status; e.body=txt; throw e;
@@ -659,22 +913,30 @@ function rest(path, opts){
     return ct.indexOf("json")>=0 ? r.json() : r.text();
   });
 }
+// Storage paths come back from the database; only ever use ones shaped the way
+// this app writes them, so a crafted row cannot point a request elsewhere.
+var SAFE_PATH=/^(photos|plans)\/[0-9a-f-]{36}\/[0-9a-f-]{36}(-\d{10,16})?\.(jpg|dxf)$/;
 function storageUpload(path, blob, type){
+  if(!SAFE_PATH.test(path)) return Promise.reject(new Error("bad storage path"));
   return auth.token().then(function(t){
+    // Every upload is a new file (photo paths carry a time), so nothing is
+    // ever overwritten in place.
     return fetch(SB.url+"/storage/v1/object/pillars/"+path, {
       method:"POST",
-      headers:{ apikey:SB.key, Authorization:"Bearer "+t, "content-type":type||"application/octet-stream", "x-upsert":"true" },
+      headers:{ apikey:SB.key, Authorization:"Bearer "+t, "content-type":type||"application/octet-stream" },
       body:blob
     });
   }).then(function(r){ if(!r.ok) return r.text().then(function(t){ throw new Error(t); }); return true; });
 }
 function storageDownload(path){
+  if(!SAFE_PATH.test(path||"")) return Promise.resolve(null);
   return auth.token().then(function(t){
     return fetch(SB.url+"/storage/v1/object/pillars/"+path,
                  { headers:{ apikey:SB.key, Authorization:"Bearer "+t } });
   }).then(function(r){ return r.ok ? r.text() : null; });
 }
 function storageSign(path){
+  if(!SAFE_PATH.test(path||"")) return Promise.resolve(null);
   return auth.token().then(function(t){
     return fetch(SB.url+"/storage/v1/object/sign/pillars/"+path,{
       method:"POST", headers:{apikey:SB.key, Authorization:"Bearer "+t, "content-type":"application/json"},
@@ -1056,6 +1318,11 @@ function convert(recs, blocks, out, xf, depth){
     }
     else if(t==="INSERT" && depth<4){
       var bn=(g1(r,2,"")||"").trim(), body=blocks[bn];
+      // Nested blocks multiply: a 4 KB file can expand to millions of
+      // entities and freeze the phone every time the job opens. Stop well
+      // before that.
+      if(out.items.length > 400000 || out.snap.length > 1600000)
+        throw new Error("This drawing expands to more than a phone can draw. Explode or purge its blocks in CAD and save it again.");
       if(body && body.length){
         var ip=P(gn(r,10,0),gn(r,20,0));
         var sx=gn(r,41,1), sy=gn(r,42,1), rot=gn(r,50,0)*Math.PI/180;
@@ -1106,8 +1373,14 @@ function setupCanvas(){
   sizeCanvas();
   bindPointer();
 }
+var cvRect={left:0,top:0};
 function sizeCanvas(){
   var r=cv.parentNode.getBoundingClientRect();
+  // A hidden tab measures 0×0. Keep the last real size, or the re-centre below
+  // would shift the view going out and never shift it back coming in.
+  if(r.width<2 || r.height<2) return;
+  cvRect=cv.getBoundingClientRect();
+  var hud=document.querySelector(".planhud"); state.hudH = hud ? hud.offsetHeight : 72;
   dpr=Math.min(window.devicePixelRatio||1, 2.5);
   var ow=cw, oh=ch;
   cw=Math.max(1,Math.round(r.width)); ch=Math.max(1,Math.round(r.height));
@@ -1136,11 +1409,21 @@ function fitView(){
       b.miny=Math.min(b.miny,p.northing); b.maxy=Math.max(b.maxy,p.northing);
     });
   }
+  if(state.pendingView && isFinite(state.pendingView.s)){
+    var pv=state.pendingView; state.pendingView=null;
+    state.view.s=pv.s; state.view.tx=pv.e-cw/(2*pv.s); state.view.ty=pv.n-ch/(2*pv.s);
+    state.viewFitted=true; requestDraw(); return;
+  }
   if(!b || !isFinite(b.minx)) return;
   var bw=Math.max(b.maxx-b.minx,1), bh=Math.max(b.maxy-b.miny,1);
-  state.view.s = Math.min(cw/bw, ch/bh)*0.88;
-  state.view.tx = (b.minx+b.maxx)/2 - cw/(2*state.view.s);
-  state.view.ty = (b.miny+b.maxy)/2 - ch/(2*state.view.s);
+  // Fit into the part of the canvas not covered by the tool rail (right) and
+  // the crew's bar (bottom), so no corner starts out hidden under a button.
+  var L=12, R=Math.min(110, cw*0.3), T=12, B=Math.min((state.hudH||72)+12, ch*0.35);
+  var fw=Math.max(cw-L-R, 40), fh=Math.max(ch-T-B, 40);
+  var s=state.view.s = Math.min(fw/bw, fh/bh)*0.9;
+  var cx=L+fw/2, cy=T+fh/2;                       // screen centre of the free area
+  state.view.tx = (b.minx+b.maxx)/2 - cx/s;
+  state.view.ty = (b.miny+b.maxy)/2 - (ch-cy)/s;
   state.viewFitted=true;
   requestDraw();
 }
@@ -1388,7 +1671,9 @@ function centerOn(p){
   requestDraw();
 }
 function requestDraw(){
-  if(rafPending) return; rafPending=true;
+  // Nothing to draw into while the plan is not on screen; showing it redraws.
+  if(state.tab!=="plan" || rafPending) return;
+  rafPending=true;
   requestAnimationFrame(function(){ rafPending=false; draw(); });
 }
 function draw(){
@@ -1405,58 +1690,110 @@ function draw(){
     // survey linework is often on CAD's greys (colours 8 and 9), which nearly
     // vanished on the light sheet. Over satellite, black disappears into the
     // trees, so each line gets a pale edge drawn first.
+    // All the linework goes into one path per pass: thousands of entities are
+    // one stroke call, not thousands.
     var ink=css("--plan-ink"), halo=css("--plan-halo");
     var passes = state.sat ? [[halo,3.8],[ink,1.6]] : [[ink,1.5]];
-    ctx.lineJoin="round"; ctx.lineCap="round";
+    var vis=[], dots=[];
+    for(var i=0;i<P.items.length;i++){
+      var o=P.items[i];
+      if(state.hiddenLayers[o.layer]) continue;
+      var bb=o.bb;
+      if(bb[2]<wl||bb[0]>wr||bb[3]<wb||bb[1]>wt) continue;
+      if(o.k==="d") dots.push(o); else vis.push(o);
+    }
+    ctx.lineJoin="round"; ctx.lineCap="round"; ctx.setLineDash([]);
     for(var ps=0; ps<passes.length; ps++){
       ctx.strokeStyle=passes[ps][0]; ctx.fillStyle=passes[ps][0]; ctx.lineWidth=passes[ps][1];
-      for(var i=0;i<P.items.length;i++){
-        var o=P.items[i];
-        if(state.hiddenLayers[o.layer]) continue;
-        var bb=o.bb;
-        if(bb[2]<wl||bb[0]>wr||bb[3]<wb||bb[1]>wt) continue;
-        if(o.k==="p"){
-          ctx.beginPath();
-          for(var j=0;j<o.pts.length;j+=2){
-            var s=W2S(o.pts[j],o.pts[j+1]);
-            if(j===0) ctx.moveTo(s[0],s[1]); else ctx.lineTo(s[0],s[1]);
+      ctx.beginPath();
+      for(var k=0;k<vis.length;k++){
+        var it=vis[k];
+        if(it.k==="p"){
+          for(var j=0;j<it.pts.length;j+=2){
+            var sx=(it.pts[j]-v.tx)*v.s, sy=ch-(it.pts[j+1]-v.ty)*v.s;
+            if(j===0) ctx.moveTo(sx,sy); else ctx.lineTo(sx,sy);
           }
-          ctx.stroke();
-        } else if(o.k==="a"){
-          var c=W2S(o.x,o.y), rr=o.r*v.s;
+        } else if(it.k==="a"){
+          var cx=(it.x-v.tx)*v.s, cy=ch-(it.y-v.ty)*v.s, rr=it.r*v.s;
           if(rr<0.6) continue;
-          ctx.beginPath(); ctx.arc(c[0],c[1],rr,-o.a1,-o.a0); ctx.stroke();
-        } else if(o.k==="d"){
-          var d=W2S(o.x,o.y);
-          ctx.beginPath(); ctx.arc(d[0],d[1],passes[ps][1]+1,0,6.3); ctx.fill();
+          ctx.moveTo(cx+rr*Math.cos(-it.a1), cy+rr*Math.sin(-it.a1));   // no stray joining line
+          ctx.arc(cx,cy,rr,-it.a1,-it.a0);
         }
+      }
+      ctx.stroke();
+      if(dots.length){
+        ctx.beginPath();
+        for(var q=0;q<dots.length;q++){
+          var dx=(dots[q].x-v.tx)*v.s, dy=ch-(dots[q].y-v.ty)*v.s;
+          ctx.moveTo(dx+passes[ps][1]+1,dy); ctx.arc(dx,dy,passes[ps][1]+1,0,6.2832);
+        }
+        ctx.fill();
       }
     }
   }
-
-  // pillars — shape says what it is, colour says how it stands
-  var pts=state.points;
-  for(var n=0;n<pts.length;n++){
-    var p=pts[n];
-    if(p.deleted || p.easting==null || p.northing==null) continue;
-    var sp=W2S(p.easting,p.northing);
-    if(sp[0]<-40||sp[0]>cw+40||sp[1]<-40||sp[1]>ch+40) continue;
-    var isSel = state.sel===p.id;
-    drawMarker(sp[0], sp[1], p.pillar_type, p.status, isSel);
-    if(v.s>0.08 || isSel){
-      ctx.font='600 11px '+css("--f-cond");
-      ctx.fillStyle=css("--ink"); ctx.textBaseline="middle";
-      ctx.fillText(p.pillar_no||"?", sp[0]+14, sp[1]);
-    }
-  }
+  drawPillars(v);
   drawMe();
+  drawScale();
+  saveUi();                         // remember where the map was left
+}
+
+// Pillars, with level of detail: zoomed out they are small status dots (shapes
+// would only pile on top of each other), closer in they take their shapes,
+// and close enough to read, their numbers on a halo.
+function drawPillars(v){
+  var pts=state.points, lod = v.s<0.35 ? 0 : (v.s<1.0 ? 1 : 2);
+  var sel=null, bg=css("--plan-bg");
+  if(lod===0){
+    var byStatus={};
+    for(var n=0;n<pts.length;n++){
+      var p=pts[n];
+      if(p.deleted || p.easting==null) continue;
+      var x=(p.easting-v.tx)*v.s, y=ch-(p.northing-v.ty)*v.s;
+      if(x<-8||x>cw+8||y<-8||y>ch+8) continue;
+      if(p.id===state.sel){ sel={p:p,x:x,y:y}; continue; }
+      (byStatus[p.status]=byStatus[p.status]||[]).push(x,y);
+    }
+    Object.keys(byStatus).forEach(function(st){
+      var a=byStatus[st];
+      ctx.fillStyle=css(STATUS[st]?STATUS[st].v:"--st-toset");
+      ctx.beginPath();
+      for(var i=0;i<a.length;i+=2){ ctx.moveTo(a[i]+2.6,a[i+1]); ctx.arc(a[i],a[i+1],2.6,0,6.2832); }
+      ctx.fill();
+    });
+  } else {
+    ctx.lineJoin="round"; ctx.lineCap="round";
+    var labels=[];
+    for(var m=0;m<pts.length;m++){
+      var q=pts[m];
+      if(q.deleted || q.easting==null) continue;
+      var sx=(q.easting-v.tx)*v.s, sy=ch-(q.northing-v.ty)*v.s;
+      if(sx<-40||sx>cw+40||sy<-40||sy>ch+40) continue;
+      if(q.id===state.sel){ sel={p:q,x:sx,y:sy}; continue; }
+      drawMarker(sx, sy, q.pillar_type, q.status, false, bg);
+      if(lod===2) labels.push(q.pillar_no||"?", sx, sy);
+    }
+    if(labels.length) drawLabels(labels);
+  }
+  if(sel){                                  // the selected pillar on top, with a ring
+    ctx.beginPath(); ctx.arc(sel.x,sel.y,15,0,6.2832);
+    ctx.lineWidth=3; ctx.setLineDash([]); ctx.strokeStyle=css("--accent"); ctx.stroke();
+    drawMarker(sel.x, sel.y, sel.p.pillar_type, sel.p.status, true, bg);
+    drawLabels([sel.p.pillar_no||"?", sel.x, sel.y]);
+  }
+}
+function drawLabels(l){
+  ctx.font='600 11px '+css("--f-cond");
+  ctx.textBaseline="middle"; ctx.lineJoin="round";
+  ctx.lineWidth=3.5; ctx.strokeStyle=css("--plan-bg"); ctx.fillStyle=css("--ink");
+  for(var i=0;i<l.length;i+=3){ ctx.strokeText(l[i], l[i+1]+13, l[i+2]); }
+  for(var k=0;k<l.length;k+=3){ ctx.fillText(l[k], l[k+1]+13, l[k+2]); }
 }
 
 // Builds the outline for a type. Returns false for marks with no interior.
 function markerPath(x,y,r,type){
   ctx.beginPath();
   if(type==="concrete" || type==="concrete_pipe"){ ctx.rect(x-r,y-r,r*2,r*2); return true; }
-  if(type==="iron_pipe" || type==="rebar"){ ctx.arc(x,y,r,0,6.3); return true; }
+  if(type==="iron_pipe" || type==="rebar"){ ctx.arc(x,y,r,0,6.2832); return true; }
   if(type==="wood"){
     ctx.moveTo(x,y-r-1); ctx.lineTo(x+r,y+r-1); ctx.lineTo(x-r,y+r-1); ctx.closePath(); return true;
   }
@@ -1467,29 +1804,42 @@ function markerPath(x,y,r,type){
   ctx.moveTo(x,y-r); ctx.lineTo(x+r,y); ctx.lineTo(x,y+r); ctx.lineTo(x-r,y); ctx.closePath();
   return true;  // diamond = other
 }
-function drawMarker(x,y,type,status,selected){
+// Planted is the strongest state, not the faintest: solid. Needs CP is a
+// dashed outline — work still to do. Missing is struck through.
+function drawMarker(x,y,type,status,selected,bg){
   var col=css(STATUS[status]?STATUS[status].v:"--st-toset");
   var r=selected?9:7;
-  var inGround=(status==="set"||status==="rebuilt");
-  ctx.save();
-  ctx.lineWidth=selected?2.8:2;
-  ctx.lineJoin="round"; ctx.lineCap="round";
-  ctx.setLineDash(status==="to_set" ? [3,3] : []);
+  var solid=(status==="set"||status==="rebuilt");
+  ctx.lineWidth=selected?2.6:2;
+  ctx.setLineDash(status==="to_set" ? [3,2.5] : []);
   var closed=markerPath(x,y,r,type);
-  if(closed){
-    ctx.fillStyle=css("--plan-bg"); ctx.fill();      // punch a hole in the linework
-    if(inGround){ ctx.globalAlpha=0.26; ctx.fillStyle=col; ctx.fill(); ctx.globalAlpha=1; }
-  }
+  if(closed){ ctx.fillStyle = solid ? col : (bg||css("--plan-bg")); ctx.fill(); }
   ctx.strokeStyle=col; ctx.stroke();
   if(type==="concrete_pipe" || type==="iron_pipe"){
     ctx.setLineDash([]);
-    ctx.beginPath(); ctx.arc(x,y,1.9,0,6.3); ctx.fillStyle=col; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,2,0,6.2832); ctx.fillStyle= solid ? (bg||css("--plan-bg")) : col; ctx.fill();
   }
-  if(status==="missing"){                              // struck through
+  if(status==="missing"){
     ctx.setLineDash([]);
     ctx.beginPath(); ctx.moveTo(x-r-2,y+r+2); ctx.lineTo(x+r+2,y-r-2); ctx.stroke();
   }
-  ctx.restore();
+}
+// A scale bar, as on any plan sheet: a round length close to a fifth of the
+// screen width.
+function drawScale(){
+  if(!state.plan && !state.points.length) return;
+  var target=cw*0.2/state.view.s, mag=Math.pow(10,Math.floor(Math.log10(target)));
+  var len=[1,2,5,10].map(function(m){ return m*mag; }).filter(function(x){ return x<=target; }).pop() || mag;
+  var px=len*state.view.s, x0=14, y0=ch-(state.hudH||72)-14;
+  if(px<20) return;
+  var ink=css("--ink"), bg=css("--plan-bg");
+  ctx.setLineDash([]);
+  ctx.fillStyle=bg; ctx.globalAlpha=0.82; ctx.fillRect(x0-6,y0-16,px+12+52,24); ctx.globalAlpha=1;
+  ctx.fillStyle=ink;
+  ctx.fillRect(x0,y0,px/2,4);
+  ctx.strokeStyle=ink; ctx.lineWidth=1; ctx.strokeRect(x0+0.5,y0+0.5,px-1,3);
+  ctx.font='500 10.5px '+css("--f-mono"); ctx.textBaseline="bottom";
+  ctx.fillText(len>=1000 ? (len/1000)+" km" : len+" m", x0, y0-3);
 }
 
 /* ---- pointer: pan, pinch, tap ---- */
@@ -1504,7 +1854,7 @@ function bindPointer(){
       var a=[...ptrs.values()];
       startDist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
       startS=state.view.s;
-      var r=cv.getBoundingClientRect();
+      var r=cvRect;
       startMid=S2W((a[0].x+a[1].x)/2-r.left,(a[0].y+a[1].y)/2-r.top);
       mode="pinch";
     } else mode="pan";
@@ -1524,7 +1874,7 @@ function bindPointer(){
       var d=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);
       if(startDist>0 && d>0){
         var ns=Math.max(1e-6, Math.min(1e7, startS*(d/startDist)));
-        var r=cv.getBoundingClientRect();
+        var r=cvRect;
         var mx=(a[0].x+a[1].x)/2-r.left, my=(a[0].y+a[1].y)/2-r.top;
         state.view.s=ns;
         state.view.tx = startMid[0] - mx/ns;
@@ -1538,7 +1888,7 @@ function bindPointer(){
     var had=ptrs.size;
     ptrs.delete(e.pointerId);
     if(had===1 && moved<10 && (Date.now()-downAt)<500){
-      var r=cv.getBoundingClientRect();
+      var r=cvRect;
       tapAt(e.clientX-r.left, e.clientY-r.top);
     }
     if(ptrs.size<2) mode = ptrs.size===1 ? "pan" : null;
@@ -1557,12 +1907,19 @@ function bindPointer(){
     requestDraw();
   }, {passive:false});
 
+  var roPending=false, roX=0, roY=0;
   cv.addEventListener("pointermove", function(e){
-    var r=cv.getBoundingClientRect();
-    var w=S2W(e.clientX-r.left, e.clientY-r.top);
-    $("readout").textContent = state.plan||state.points.length
-      ? "E "+fmt(w[0],2)+"   N "+fmt(w[1],2) : "—";
+    if(ptrs.size) return;                       // mid-pan: the readout can wait
+    roX=e.clientX; roY=e.clientY;
+    if(roPending) return; roPending=true;
+    requestAnimationFrame(function(){
+      roPending=false;
+      var w=S2W(roX-cvRect.left, roY-cvRect.top);
+      $("readout").textContent = state.plan||state.points.length
+        ? "E "+fmt(w[0],2)+"   N "+fmt(w[1],2) : "—";
+    });
   });
+  window.addEventListener("scroll", function(){ cvRect=cv.getBoundingClientRect(); }, {passive:true});
 }
 
 function tapAt(sx,sy){
@@ -1579,7 +1936,7 @@ function tapAt(sx,sy){
 
   if(state.moveId){
     var mp=state.points.find(function(x){return x.id===state.moveId;});
-    state.moveId=null; $("hint").textContent="Tap a corner to place a pillar";
+    setMoveBanner(null);
     if(mp){
       var sn0=state.snap? findSnap(state.plan,w[0],w[1],22/state.view.s) : null;
       mp.easting = sn0?sn0[0]:w[0]; mp.northing = sn0?sn0[1]:w[1];
@@ -1590,6 +1947,24 @@ function tapAt(sx,sy){
   // Planting run: one tap marks a pillar in, a second tap takes it back out.
   if(state.plantMode){
     if(!hit){ toast("Tap a corner marker to log it planted"); return; }
+    // Plant mode only moves a corner between Needs CP and Planted. Found,
+    // Rebuilt and Missing are recorded on purpose — open the record instead of
+    // overwriting them with a tap.
+    if(hit.status!=="to_set" && hit.status!=="set"){
+      state.sel=hit.id; requestDraw(); openPillar(hit);
+      toast((hit.pillar_no||"This pillar")+" is "+STATUS[hit.status].label+" — change it here if that is wrong");
+      return;
+    }
+    // Taking back someone else's planting needs a second, deliberate tap.
+    if(hit.status==="set" && hit.planted_by && (!state.planter || hit.planted_by!==state.planter.id)){
+      if(state.confirmUnplant!==hit.id){
+        state.confirmUnplant=hit.id;
+        setTimeout(function(){ if(state.confirmUnplant===hit.id) state.confirmUnplant=null; }, 4000);
+        toast((hit.pillar_no||"Pillar")+" was planted by "+(crewName(hit.planted_by)||hit.crew||"someone else")+" — tap again to mark it Needs CP", "warn");
+        return;
+      }
+      state.confirmUnplant=null;
+    }
     var wasPlanted = (hit.status==="set");
     hit.status = wasPlanted ? "to_set" : "set";
     if(!wasPlanted){
@@ -1629,31 +2004,52 @@ function nextNo(){
   return "P"+String(max+1).padStart(3,"0");
 }
 // Any real action on a pillar makes it this crew's own record, no longer just
-// a corner the tool dropped — so it syncs as an edit that wins, not a seed.
-function touchPoint(p){ p.updated_at=nowISO(); p._dirty=true; delete p._seed; }
+// a corner the tool dropped — so it syncs as an edit, not a seed. _rev counts
+// edits so a change made while a sync is in flight is not marked as sent.
+function touchPoint(p){
+  p.updated_at=nowISO(); p._dirty=true; p._rev=(p._rev||0)+1;
+  delete p._seed; delete p._rejected;
+  markJobPending(p.job_id);
+}
 
 function newPoint(extra){
+  extra=extra||{};
   var p = Object.assign({
-    id: uuid(), job_id: state.job.id, pillar_no: nextNo(), status:"set",
+    id: uuid(), job_id: state.job.id,
+    pillar_no: extra.pillar_no ? null : nextNo(),        // not rescanned for every corner of a batch
+    status:"set",
     pillar_type:"concrete", lot:null, easting:null, northing:null, elevation:null,
     coord_system:"UTM16N", lat:null, lon:null, gps_accuracy:null,
-    set_on: today(), crew:null, notes:null, photo_path:null, unit_cost:null,
+    set_on: today(), crew:null, planted_by:null, notes:null, photo_path:null, unit_cost:null,
     source:"field", device_id: state.device, deleted:false,
-    created_at: nowISO(), updated_at: nowISO(), _dirty:true
-  }, extra||{});
+    created_at: nowISO(), updated_at: nowISO(), _dirty:true, _rev:1
+  }, extra);
   return p;
 }
+// A pillar placed by hand is only a draft until Save: a stray tap on the plan
+// must not leave a billable "Planted" record behind. A snapped corner gets the
+// same position-based id the Corners tool uses, so two crews tapping the same
+// corner make one pillar, not two.
 function newPillarAt(e,n,source){
-  var p=newPoint({ easting:e, northing:n, source:source });   // status defaults to Set
-  state.points.push(p);
-  savePoint(p);
+  var extra={ easting:e, northing:n, source:source };
+  if(source==="plan-snap" && state.job){
+    var id=cornerId(state.job.id, e, n);
+    var had=state.points.filter(function(x){ return x.id===id; })[0];
+    if(had && !had.deleted){ state.sel=had.id; requestDraw(); openPillar(had); return; }
+    if(had) extra.pillar_no=had.pillar_no;
+    extra.id=id;
+  }
+  var p=newPoint(extra);
+  if(extra.id && !p.pillar_no) p.pillar_no=nextNo();
   state.sel=p.id;
   requestDraw();
   openPillar(p, true);
 }
 function savePoint(p){
   idbPut("points", stripRuntime(p));
-  renderCounts(); renderList(); renderJob(); updateLamp();
+  markJobPending(p.job_id);
+  if(state.locating) guideNearest();          // the guide needs the change at once
+  invalidate();
   scheduleSync();
 }
 function stripRuntime(p){
@@ -1663,138 +2059,316 @@ function stripRuntime(p){
 
 /* ========================================================================
    Sync
-   ======================================================================== */
+   ========================================================================
+
+   How it stays honest with several phones and the office on one job:
+
+   - Every write is stamped by the server's clock, never the phone's. A phone
+     with the wrong date can no longer hide rows from everyone else.
+   - Each record remembers the server copy it was last based on (_base). When
+     this phone pushes, it first reads the current server row and merges field
+     by field: what this phone changed wins, what it did not change is taken
+     from the server. An old offline copy cannot undo another crew's planting.
+   - A delete never removes a pillar someone else has worked on since.
+   - The pull pages through by (updated_at, id) and overlaps two minutes, so
+     nothing is skipped at a page edge or by a slow commit.
+*/
 var syncTimer=null, pollTimer=null;
-function pendingCount(){ return state.points.filter(function(p){return p._dirty;}).length; }
+var SYNC_FIELDS=["job_id","pillar_no","status","pillar_type","lot","easting","northing","elevation",
+  "coord_system","lat","lon","gps_accuracy","set_on","crew","planted_by","notes","photo_path",
+  "unit_cost","source","device_id","deleted"];
+
+function pendingCount(){ return state.points.filter(function(p){ return p._dirty && !p._rejected; }).length; }
+function rejectedCount(){ return state.points.filter(function(p){ return p._rejected; }).length; }
+
+// Jobs with records still to send, kept so pillars on a job that is not open
+// are sent too, and are counted before anyone signs out.
+function pendingJobs(){ try{ return JSON.parse(ls("pf.pendjobs")||"[]"); }catch(e){ return []; } }
+function markJobPending(id){
+  if(!id) return;
+  var l=pendingJobs(); if(l.indexOf(id)<0){ l.push(id); ls("pf.pendjobs", JSON.stringify(l)); }
+}
+function clearJobPending(id){
+  ls("pf.pendjobs", JSON.stringify(pendingJobs().filter(function(x){ return x!==id; })));
+}
 
 function updateLamp(){
-  var lamp=$("lamp"), txt=$("lampTxt"), n=pendingCount();
-  if(!navigator.onLine){ lamp.dataset.s="off"; txt.textContent = n? n+" waiting" : "Offline"; }
+  var lamp=$("lamp"), txt=$("lampTxt"); if(!lamp) return;
+  var n=pendingCount(), bad=rejectedCount();
+  if(auth.dead){ lamp.dataset.s="err"; txt.textContent="Sign in again"; }
+  else if(!navigator.onLine){ lamp.dataset.s="off"; txt.textContent = n? n+" waiting" : "Offline"; }
   else if(state.syncing){ lamp.dataset.s="busy"; txt.textContent="Syncing"; }
   else if(!state.dbReady){ lamp.dataset.s="err"; txt.textContent="Setup"; }
+  else if(bad){ lamp.dataset.s="err"; txt.textContent=bad+" refused"; }
   else if(state.syncFailed){ lamp.dataset.s="err"; txt.textContent = n? n+" stuck" : "Not synced"; }
   else if(n){ lamp.dataset.s="pending"; txt.textContent=n+" waiting"; }
   else if(!state.lastSync){ lamp.dataset.s="pending"; txt.textContent="Not synced"; }
   else { lamp.dataset.s="ok"; txt.textContent="Synced"; }
-  var kp=$("kPending"); if(kp) kp.textContent=n;
+  var kp=$("kPending"); if(kp) kp.textContent=n+(bad? " · "+bad+" refused" : "");
   var kl=$("kLast"); if(kl) kl.textContent = state.lastSync ? new Date(state.lastSync).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}) : "Never";
 }
 function scheduleSync(){
   clearTimeout(syncTimer);
   syncTimer=setTimeout(function(){ syncNow(); }, 600);
 }
+// No updated_at: the server stamps every insert (column default) and every
+// update (trigger) with its own clock.
 function rowOf(p){
-  return {
-    id:p.id, job_id:p.job_id, pillar_no:p.pillar_no, status:p.status, pillar_type:p.pillar_type,
-    lot:p.lot, easting:p.easting, northing:p.northing, elevation:p.elevation,
-    coord_system:p.coord_system, lat:p.lat, lon:p.lon, gps_accuracy:p.gps_accuracy,
-    set_on:p.set_on, crew:p.crew, planted_by:p.planted_by||null, notes:p.notes, photo_path:p.photo_path,
-    unit_cost:p.unit_cost, source:p.source, device_id:p.device_id, deleted:!!p.deleted,
-    created_at:p.created_at, updated_at:p.updated_at
-  };
+  var r={ id:p.id, created_at:p.created_at };
+  SYNC_FIELDS.forEach(function(k){ r[k] = k==="deleted" ? !!p.deleted : (p[k]===undefined ? null : p[k]); });
+  return r;
+}
+function baseOf(r){
+  var b={ updated_at:r.updated_at };
+  SYNC_FIELDS.forEach(function(k){ b[k]= r[k]===undefined ? null : r[k]; });
+  return b;
+}
+function same(a,b){
+  if(a==null || a==="") a=null;
+  if(b==null || b==="") b=null;
+  if(a===null || b===null) return a===b;
+  if(typeof a==="number" || typeof b==="number") return Number(a)===Number(b);
+  return String(a)===String(b);
+}
+// Take the server's copy as this phone's record.
+function adopt(p, r){
+  SYNC_FIELDS.forEach(function(k){ p[k]=r[k]; });
+  p.id=r.id; p.created_at=r.created_at; p.updated_at=r.updated_at;
+  p._base=baseOf(r); p._dirty=false;
+  delete p._seed; delete p._rejected;
+}
+// Has anyone done anything to this pillar beyond the corner being drawn?
+function worked(r){
+  return !!r && (r.status!=="to_set" || !!r.planted_by || !!r.notes || !!r.photo_path);
+}
+// Merge this phone's record with the current server row. Returns the row to
+// send, or null when the server copy should simply be kept.
+function mergeForPush(p, s){
+  if(!s) return rowOf(p);                                // new to the office
+  var b=p._base;
+  if(b && b.updated_at===s.updated_at) return rowOf(p);   // nobody else touched it
+  var out=rowOf(p);
+  out.created_at=s.created_at;
+  SYNC_FIELDS.forEach(function(k){
+    if(b){ if(same(p[k], b[k])) out[k]=s[k]; }           // unchanged here: theirs
+    else if(p[k]==null && s[k]!=null) out[k]=s[k];       // no history: never erase
+  });
+  var theyWorked = worked(s) && !(b && worked(b));
+  // A delete from an old copy never removes a pillar someone has worked on.
+  if(out.deleted && !s.deleted && theyWorked) return null;
+  // Without history, planting at the office outranks an old "needs CP" copy.
+  if(!b && (s.status==="set" || s.status==="rebuilt") && out.status==="to_set"){
+    out.status=s.status; out.set_on=s.set_on; out.planted_by=s.planted_by; out.crew=s.crew;
+  }
+  return out;
 }
 function chunks(arr, n){ var out=[]; for(var i=0;i<arr.length;i+=n) out.push(arr.slice(i,i+n)); return out; }
 function inSeries(list, fn){
   return list.reduce(function(chain, x){ return chain.then(function(){ return fn(x); }); }, Promise.resolve());
 }
-// Edits: this phone's version wins (merge).
-function pushEdits(rows){
-  return inSeries(chunks(rows,200), function(part){
-    return rest("pillar_points?on_conflict=id",{ method:"POST",
-      headers:{ Prefer:"resolution=merge-duplicates,return=minimal" },
-      body:JSON.stringify(part.map(rowOf)) })
-    .then(function(){ part.forEach(function(p){ p._dirty=false; idbPut("points", stripRuntime(p)); }); });
+function serverRows(ids){
+  if(!ids.length) return Promise.resolve({});
+  return rest("pillar_points?select=*&id=in.("+ids.join(",")+")").then(function(rows){
+    var by={}; (rows||[]).forEach(function(r){ by[r.id]=r; }); return by;
+  });
+}
+// A refusal about the row itself — not the sign-in, the network or the server.
+function rowFault(e){ return !!e && e.status>=400 && e.status<500 && e.status!==401 && e.status!==408 && e.status!==429; }
+
+// POST merged rows. If the office refuses a batch over one bad row, send them
+// one at a time so a single bad record cannot block everything behind it.
+function postRows(send){
+  function post(list){
+    return rest("pillar_points?on_conflict=id&select=*",{ method:"POST",
+      headers:{ Prefer:"resolution=merge-duplicates,return=representation" },
+      body:JSON.stringify(list.map(function(x){ return x.row; })) })
+    .then(function(rows){
+      var by={}; (rows||[]).forEach(function(r){ by[r.id]=r; });
+      return list.map(function(x){ return { p:x.p, row:by[x.p.id]||null }; });
+    });
+  }
+  return post(send).catch(function(e){
+    if(!rowFault(e)) throw e;
+    var out=[];
+    return inSeries(send, function(x){
+      return post([x]).then(function(r){ out.push(r[0]); }, function(e2){
+        if(!rowFault(e2)) throw e2;
+        x.p._rejected=errText(e2);
+        out.push({ p:x.p, row:null });
+      });
+    }).then(function(){ return out; });
+  });
+}
+function pushEdits(rows, stats){
+  return inSeries(chunks(rows,80), function(part){
+    var sent={}; part.forEach(function(p){ sent[p.id]=p._rev||0; });
+    return serverRows(part.map(function(p){ return p.id; })).then(function(srv){
+      var send=[];
+      part.forEach(function(p){
+        var m=mergeForPush(p, srv[p.id]);
+        if(m===null){ adopt(p, srv[p.id]); stats.kept++; stats.changed++; }
+        else send.push({ p:p, row:m });
+      });
+      var done = send.length ? postRows(send) : Promise.resolve([]);
+      return done.then(function(res){
+        res.forEach(function(d){
+          if(!d.row) return;
+          if((d.p._rev||0)===sent[d.p.id]){
+            var before=JSON.stringify(rowOf(d.p));
+            adopt(d.p, d.row);
+            if(JSON.stringify(rowOf(d.p))!==before) stats.changed++;   // the merge brought something in
+          } else {
+            d.p._base=baseOf(d.row);                                    // edited mid-flight: goes again
+          }
+          stats.pushed++;
+        });
+        return idbPutMany("points", part.map(stripRuntime));
+      });
+    });
   });
 }
 // Corners the tool dropped and nobody has touched: insert only, never
 // overwrite. If another crew placed the same corner first — perhaps already
 // planted it — theirs stands, and this phone takes their copy.
-function pushSeeds(rows){
+function pushSeeds(rows, stats){
   return inSeries(chunks(rows,200), function(part){
     return rest("pillar_points?on_conflict=id",{ method:"POST",
       headers:{ Prefer:"resolution=ignore-duplicates,return=minimal" },
-      body:JSON.stringify(part.map(rowOf)) });
-  }).then(function(){
-    return inSeries(chunks(rows,80), function(part){
-      var ids=part.map(function(p){ return p.id; }).join(",");
-      return rest("pillar_points?id=in.("+ids+")").then(function(server){
-        var byId={}; (server||[]).forEach(function(r){ byId[r.id]=r; });
-        part.forEach(function(p){
-          var r=byId[p.id];
-          if(!r) return;                       // not there yet: try again next sync
-          Object.keys(r).forEach(function(k){ p[k]=r[k]; });
-          p._dirty=false; delete p._seed;
-          idbPut("points", stripRuntime(p));
+      body:JSON.stringify(part.map(rowOf)) })
+    .then(function(){
+      return inSeries(chunks(part,80), function(sub){
+        return serverRows(sub.map(function(p){ return p.id; })).then(function(srv){
+          sub.forEach(function(p){
+            var r=srv[p.id];
+            if(!r) return;                                // not there yet: next sync
+            if(p._seed){ adopt(p, r); stats.changed++; }   // still untouched here
+            else { p._base=baseOf(r); }                   // touched mid-flight: merged next push
+            stats.pushed++;
+          });
+          return idbPutMany("points", sub.map(stripRuntime));
         });
       });
     });
   });
 }
+// Send one job's waiting records — photos first, so their paths go with them.
+function pushJob(list, stats){
+  return uploadPendingPhotos(list).then(function(){
+    var dirty=list.filter(function(p){ return p._dirty && !p._rejected; });
+    return pushSeeds(dirty.filter(function(p){ return p._seed; }), stats).then(function(){
+      return pushEdits(dirty.filter(function(p){ return !p._seed && p._dirty; }), stats);
+    });
+  });
+}
+// Pull a job's changes. Pages by (updated_at, id) so no row is skipped at a
+// page edge, and re-reads the last two minutes so a slow commit is not missed.
+function pullJob(jobId){
+  var key="pull2:"+jobId;
+  return idbGet("kv",key).then(function(cur){
+    var since = cur ? new Date(new Date(cur).getTime()-120000).toISOString() : "1970-01-01T00:00:00Z";
+    var all=[], lastT=null, lastId=null, LIM=1000;
+    function page(){
+      var q="pillar_points?select=*&job_id=eq."+jobId+"&order=updated_at.asc,id.asc&limit="+LIM;
+      if(lastT===null) q+="&updated_at=gte."+encodeURIComponent(since);
+      else q+="&or="+encodeURIComponent("(updated_at.gt."+lastT+",and(updated_at.eq."+lastT+",id.gt."+lastId+"))");
+      return rest(q).then(function(rows){
+        rows=rows||[]; all=all.concat(rows);
+        if(rows.length===LIM){ lastT=rows[LIM-1].updated_at; lastId=rows[LIM-1].id; return page(); }
+        return all;
+      });
+    }
+    return page().then(function(rows){
+      var top=cur||null;
+      rows.forEach(function(r){ if(!top || r.updated_at>top) top=r.updated_at; });
+      return { rows:rows, key:key, top:top };
+    });
+  });
+}
+// Merge pulled rows into a job's records. A record with changes still to send
+// keeps them; the next push merges against the server copy.
+function mergePulled(list, rows, stats){
+  var by={}; list.forEach(function(p){ by[p.id]=p; });
+  var touched=[];
+  rows.forEach(function(r){
+    var p=by[r.id];
+    if(p && p._dirty) return;
+    if(p && p._base && p._base.updated_at===r.updated_at) return;   // already have this version
+    if(!p){ p={}; list.push(p); by[r.id]=p; }
+    adopt(p, r);
+    touched.push(p); stats.changed++;
+  });
+  return idbPutMany("points", touched.map(stripRuntime));
+}
+
 function syncNow(manual){
   if(state.syncing || !state.job || !auth.session) return Promise.resolve();
+  if(auth.dead){ updateLamp(); if(manual) promptSignIn(); return Promise.resolve(); }
   if(!navigator.onLine){ updateLamp(); if(manual) toast("No signal — saved on this phone"); return Promise.resolve(); }
   state.syncing=true; updateLamp();
+  var job=state.job, list=state.points, stats={ pushed:0, changed:0, kept:0 };
 
-  return uploadPendingPhotos()
-    .then(function(){
-      var dirty=state.points.filter(function(p){return p._dirty;});
-      var seeds=dirty.filter(function(p){ return p._seed; });
-      var edits=dirty.filter(function(p){ return !p._seed; });
-      return pushSeeds(seeds).then(function(){ return pushEdits(edits); });
+  return pushJob(list, stats)
+    .then(function(){ return pushOtherJobs(job.id, stats); })
+    .then(function(){ return uploadPendingPlans(); })
+    .then(function(){ return pullJob(job.id); })
+    .then(function(res){
+      // The open job may have changed while this ran: merge into memory only
+      // if it is still the same job, otherwise straight into the phone's store.
+      var open = state.job && state.job.id===job.id && state.points===list;
+      var merged = open ? mergePulled(list, res.rows, stats)
+        : idbByJob("points", job.id).then(function(l){ return mergePulled(l, res.rows, stats); });
+      return merged.then(function(){ if(res.top) return idbPut("kv", res.top, res.key); });
     })
     .then(function(){
-      var since = state.lastPull || "1970-01-01T00:00:00Z";
-      return rest("pillar_points?job_id=eq."+state.job.id+"&updated_at=gt."+encodeURIComponent(since)+"&order=updated_at.asc&limit=2000");
-    })
-    .then(function(rows){
-      if(rows && rows.length){
-        var byId={}; state.points.forEach(function(p){ byId[p.id]=p; });
-        rows.forEach(function(r){
-          var localP=byId[r.id];
-          if(localP && localP._dirty && localP.updated_at > r.updated_at) return;
-          var merged=Object.assign({}, localP||{}, r, {_dirty:false});
-          if(localP){ Object.keys(merged).forEach(function(k){ localP[k]=merged[k]; }); }
-          else { state.points.push(merged); byId[r.id]=merged; }
-          idbPut("points", stripRuntime(byId[r.id]));
-        });
-        state.lastPull = rows[rows.length-1].updated_at;
-        idbPut("kv", state.lastPull, "lastPull:"+state.job.id);
-      }
+      if(!list.some(function(p){ return p._dirty && !p._rejected; })) clearJobPending(job.id);
       state.dbReady=true;
       state.syncFailed=false;
       state.lastSync=Date.now();
       idbPut("kv", state.lastSync, "lastSync");
       state.syncing=false;
-      renderCounts(); renderList(); renderJob(); requestDraw(); updateLamp();
-      if(manual) toast("Synced");
+      // Re-render only when something actually changed — not on every idle poll.
+      if(stats.changed && state.job && state.job.id===job.id) invalidate();
+      updateLamp();
+      if(stats.kept) toast("Kept "+stats.kept+" pillar"+(stats.kept===1?"":"s")+" another crew had already worked on");
+      if(manual){
+        var bad=rejectedCount();
+        toast(bad ? bad+" pillar"+(bad===1?" was":"s were")+" refused by the office — open "+(bad===1?"it":"them")+" to see why" : "Synced", bad?"err":"ok");
+      }
     })
     .catch(function(err){
       state.syncing=false;
       state.syncFailed=true;
       var msg=String(err && err.message || err);
-      if(/pillar_points|does not exist|PGRST205|relation/i.test(msg) && /404|not exist|PGRST205/i.test(msg)){
-        state.dbReady=false;
-      }
+      if(/PGRST205|does not exist/i.test(msg)) state.dbReady=false;
       updateLamp();
-      if(manual) toast(state.dbReady? "Sync failed — will retry" : "Database not set up yet");
+      if(manual) toast(auth.dead ? "Sign in again to sync" : state.dbReady ? "Sync failed — will retry" : "Database not set up yet", "err");
       console.warn("sync:", msg);
     });
 }
-function uploadPendingPhotos(){
-  var q = state.points.filter(function(p){ return p._photoPending; });
-  if(!q.length) return Promise.resolve();
-  return q.reduce(function(chain,p){
-    return chain.then(function(){
-      return idbGet("photos", p.id).then(function(blob){
-        if(!blob){ p._photoPending=false; return; }
-        var path="photos/"+p.job_id+"/"+p.id+".jpg";
-        return storageUpload(path, blob, "image/jpeg").then(function(){
-          p.photo_path=path; p._photoPending=false; p._dirty=true;
-          return idbPut("points", stripRuntime(p));
-        });
+// Records waiting on jobs that are not open are sent too.
+function pushOtherJobs(openId, stats){
+  var others=pendingJobs().filter(function(id){ return id!==openId; });
+  return inSeries(others, function(id){
+    return idbByJob("points", id).then(function(list){
+      return pushJob(list, stats).then(function(){
+        if(!list.some(function(p){ return p._dirty && !p._rejected; })) clearJobPending(id);
       });
-    }).catch(function(){ /* keep queued */ });
-  }, Promise.resolve());
+    });
+  });
+}
+function uploadPendingPhotos(list){
+  var q=list.filter(function(p){ return p._photoPending; });
+  if(!q.length) return Promise.resolve();
+  return inSeries(q, function(p){
+    return idbGet("photos", p.id).then(function(blob){
+      if(!blob){ p._photoPending=false; return idbPut("points", stripRuntime(p)); }
+      var path="photos/"+p.job_id+"/"+p.id+"-"+Date.now()+".jpg";
+      return storageUpload(path, blob, "image/jpeg").then(function(){
+        p.photo_path=path; p._photoPending=false; touchPoint(p);
+        return idbPut("points", stripRuntime(p));
+      });
+    }).catch(function(){ /* stays queued for the next sync */ });
+  });
 }
 function startPolling(){
   clearInterval(pollTimer);
@@ -1806,6 +2380,28 @@ function startPolling(){
 /* ========================================================================
    Rendering — counts, list, job tab
    ======================================================================== */
+/* Rendering is coalesced. A change marks things dirty, and one frame later
+   only what is on screen is redrawn. A plant tap no longer rebuilds two
+   2,500-row lists that nobody can see. */
+var renderQueued=false;
+function invalidate(){
+  state.rev=(state.rev||0)+1;
+  if(renderQueued) return;
+  renderQueued=true;
+  requestAnimationFrame(flushRender);
+}
+function flushRender(){
+  renderQueued=false;
+  var t=state.tab;
+  if(t==="list"){ renderCounts(); renderList(); }
+  else if(t==="plan"){ if(wideScreen()) renderSide(); renderLegend(); requestDraw(); }
+  else if(t==="job"){ renderJob(); }
+  renderTypeFilters();
+  if(state.locating) guideNearest(); else plantProgress();
+  updateLamp();
+}
+function wideScreen(){ return !!(window.matchMedia && matchMedia("(min-width:1100px)").matches); }
+
 function visible(){
   var q=state.q.toLowerCase();
   return state.points.filter(function(p){
@@ -1814,45 +2410,39 @@ function visible(){
     if(state.typeFilter!=="all" && p.pillar_type!==state.typeFilter) return false;
     if(!q) return true;
     return [p.pillar_no,p.lot,p.notes,p.crew].join(" ").toLowerCase().indexOf(q)>=0;
-  }).sort(function(a,b){
-    return String(a.pillar_no).localeCompare(String(b.pillar_no), undefined, {numeric:true});
-  });
+  }).sort(function(a,b){ return COLLATE.compare(String(a.pillar_no), String(b.pillar_no)); });
 }
 function tally(){
   var t={to_set:0,set:0,found:0,rebuilt:0,missing:0,all:0};
   state.points.forEach(function(p){ if(p.deleted) return; t.all++; if(t[p.status]!=null) t[p.status]++; });
   return t;
 }
+// The status filters double as the counts: one row, each chip carrying its
+// number, named exactly as the status pills name them.
+var FILTERS=["all","to_set","set","found","rebuilt","missing"];
 function renderCounts(){
-  var t=tally(), host=$("counts"); host.textContent="";
-  [["set","Set"],["to_set","To set"],["found","Found"],["missing","Missing"]].forEach(function(pair){
-    var c=el("div","cnt"); c.dataset.k=pair[0];
-    c.style.setProperty("--k","var("+STATUS[pair[0]].v+")");
-    c.appendChild(el("b",null,String(t[pair[0]])));
-    c.appendChild(el("span",null,pair[1]));
-    host.appendChild(c);
-  });
-  var f=$("filters");
+  var t=tally(), f=$("filters");
   if(!f.dataset.built){
     f.dataset.built="1";
-    [["all","All"],["to_set","To set"],["set","Set"],["found","Found"],["rebuilt","Rebuilt"],["missing","Missing"]].forEach(function(pair){
-      var b=el("button",null,pair[1]); b.type="button"; b.dataset.f=pair[0];
-      b.setAttribute("aria-pressed", String(state.filter===pair[0]));
+    FILTERS.forEach(function(k){
+      var b=el("button","fchip"); b.type="button"; b.dataset.f=k;
+      if(k!=="all") b.style.setProperty("--k","var("+STATUS[k].v+")");
+      b.appendChild(el("span","fl", k==="all" ? "All" : STATUS[k].label));
+      b.appendChild(el("b","fn","0"));
       b.onclick=function(){
-        state.filter=pair[0];
-        [].forEach.call(f.children,function(x){ x.setAttribute("aria-pressed", String(x.dataset.f===pair[0])); });
-        renderList();
+        state.filter=k; state.listShown=LIST_PAGE;
+        [].forEach.call(f.children,function(x){ x.setAttribute("aria-pressed", String(x.dataset.f===k)); });
+        invalidate();
       };
       f.appendChild(b);
     });
   }
-  // Always drive the chips from state, so a job switch resets them.
   [].forEach.call(f.children, function(x){
-    x.setAttribute("aria-pressed", String(x.dataset.f===state.filter));
+    var k=x.dataset.f;
+    x.setAttribute("aria-pressed", String(k===state.filter));
+    x.querySelector(".fn").textContent = String(k==="all" ? t.all : t[k]);
+    x.hidden = k!=="all" && k!=="to_set" && k!=="set" && !t[k] && state.filter!==k;
   });
-  renderTypeFilters();
-  renderLegend();
-  if(state.locating) guideNearest();   // planting one changes which corner is next
 }
 
 // Same shapes the plan draws, so the markers can be read without guessing.
@@ -1872,6 +2462,7 @@ function renderLegend(){
   var keys=Object.keys(TYPES).filter(function(k){ return present[k]; });
   if(keys.length<2){ host.hidden=true; host.textContent=""; return; }   // nothing to explain
   host.hidden=false;
+  // Built from this app's own constant tables only — no record text goes in.
   host.innerHTML = keys.map(function(k){
     return '<span><svg viewBox="0 0 16 16" width="14" height="14" fill="none" '+
            'stroke="currentColor" stroke-width="1.6" aria-hidden="true">'+GLYPH[k]+'</svg>'+
@@ -1890,24 +2481,24 @@ function renderTypeFilters(){
   var keys=Object.keys(TYPES).filter(function(k){ return counts[k]; });
   if(state.typeFilter!=="all" && !counts[state.typeFilter]) state.typeFilter="all";
   if(keys.length<2){ host.hidden=true; host.textContent=""; return; }
+  var sig=keys.map(function(k){ return k+counts[k]; }).join("|")+"#"+state.typeFilter;
+  if(host.dataset.sig===sig) return;                    // nothing changed: leave the DOM alone
+  host.dataset.sig=sig;
   host.hidden=false; host.textContent="";
   var opts=[["all","All types",null]].concat(keys.map(function(k){ return [k,TYPES[k],counts[k]]; }));
   opts.forEach(function(o){
     var b=el("button",null, o[2]==null ? o[1] : o[1]+" "+o[2]);
     b.type="button"; b.dataset.t=o[0];
     b.setAttribute("aria-pressed", String(state.typeFilter===o[0]));
-    b.onclick=function(){
-      state.typeFilter=o[0];
-      [].forEach.call(host.children,function(x){
-        x.setAttribute("aria-pressed", String(x.dataset.t===o[0]));
-      });
-      renderList();
-    };
+    b.onclick=function(){ state.typeFilter=o[0]; state.listShown=LIST_PAGE; host.dataset.sig=""; invalidate(); };
     host.appendChild(b);
   });
 }
-function pillarRow(p, fromRegister){
-  var b=el("button","prow"); b.type="button";
+
+// Long lists are shown a page at a time; the rest come in with "Show more".
+var LIST_PAGE=120;
+function pillarRow(p){
+  var b=el("button","prow"); b.type="button"; b.dataset.id=p.id;
   b.appendChild(el("div","pno", p.pillar_no||"—"));
   var m=el("div","pmeta");
   m.appendChild(el("b",null, (TYPES[p.pillar_type]||"Pillar") + (p.lot? " · Lot "+p.lot : "")));
@@ -1919,50 +2510,79 @@ function pillarRow(p, fromRegister){
   b.appendChild(m);
   var pill=el("span","pill", STATUS[p.status]?STATUS[p.status].label:p.status);
   pill.dataset.k=p.status;
+  if(p._dirty || p._rejected){
+    var dot=el("i","pend"); dot.title=p._rejected ? "Refused by the office: "+p._rejected : "Not sent yet";
+    if(p._rejected) dot.dataset.bad="1";
+    pill.appendChild(dot);
+  }
   b.appendChild(pill);
-  b.onclick=function(){
-    state.sel=p.id;
-    // From the register beside the plan, walk the drawing to the pillar first.
-    if(fromRegister){ centerOn(p); }
-    requestDraw();
-    openPillar(p);
-  };
   return b;
 }
+function fillRows(host, rows, fromRegister){
+  host.textContent="";
+  var shown=Math.min(rows.length, state.listShown||LIST_PAGE);
+  var frag=document.createDocumentFragment();
+  for(var i=0;i<shown;i++) frag.appendChild(pillarRow(rows[i]));
+  if(rows.length>shown){
+    var more=el("button","btn wide more","Show "+Math.min(LIST_PAGE, rows.length-shown)+" more · "+(rows.length-shown)+" left");
+    more.type="button"; more.dataset.more="1";
+    frag.appendChild(more);
+  }
+  host.appendChild(frag);
+  // One handler for every row, set once — not 2,500 closures per render.
+  if(!host.dataset.wired){
+    host.dataset.wired="1";
+    host.addEventListener("click", function(e){
+      var t=e.target.closest ? e.target.closest(".prow,[data-more]") : null;
+      if(!t) return;
+      if(t.dataset.more){ state.listShown=(state.listShown||LIST_PAGE)+LIST_PAGE; invalidate(); return; }
+      var p=state.points.filter(function(x){ return x.id===t.dataset.id; })[0];
+      if(!p) return;
+      state.sel=p.id;
+      if(fromRegister) centerOn(p);          // from the register, walk the drawing there first
+      requestDraw();
+      openPillar(p);
+    });
+  }
+}
 function renderList(){
-  var host=$("plist"); host.textContent="";
+  var host=$("plist");
   var rows=visible();
   if(!rows.length){
+    host.textContent="";
     var e=el("div","empty");
     e.appendChild(el("h3",null, state.points.length? "Nothing matches" : "No pillars yet"));
-    e.appendChild(el("p",null, state.points.length? "Try another filter or search." : "Tap + to log one, or open the Plan tab and tap a lot corner on the DXF."));
+    e.appendChild(el("p",null, state.points.length? "Try another filter or search." : "Open the Plan tab, load the job's drawing, and use Corners to put a pillar on every corner."));
     host.appendChild(e);
-  } else {
-    rows.forEach(function(p){ host.appendChild(pillarRow(p,false)); });
+    return;
   }
-  renderSide(rows);
+  fillRows(host, rows, false);
 }
-function renderSide(rows){
+function renderSide(){
   var host=$("sideList"); if(!host) return;
-  rows = rows || visible();
-  host.textContent="";
-  var total=tally().all;
+  var rows=visible(), total=tally().all;
   $("sideCount").textContent = rows.length===total
     ? total+(total===1?" pillar":" pillars")
     : rows.length+" of "+total;
   if(!rows.length){
+    host.textContent="";
     host.appendChild(el("p","note", state.points.length
       ? "Nothing matches the filter on the Pillars tab."
-      : "Tap a lot corner on the plan to place the first pillar."));
+      : "Use Corners to put a pillar on every corner of the drawing."));
     return;
   }
-  rows.forEach(function(p){ host.appendChild(pillarRow(p,true)); });
+  fillRows(host, rows, true);
 }
 function renderJob(){
   var t=tally();
   var used=t.set+t.rebuilt;
   $("kUsed").textContent=used; $("kToSet").textContent=t.to_set;
   $("kFound").textContent=t.found; $("kMissing").textContent=t.missing;
+  // Headline: corners that needed a CP, and how many of them have one now.
+  var need=used+t.to_set;
+  $("hPlanted").textContent=used.toLocaleString();
+  $("hOf").textContent="of "+need.toLocaleString()+" corner"+(need===1?"":"s");
+  $("hPct").textContent = need ? Math.floor(used/need*100)+"%" : "—";
 
   var bar=$("useBar"); bar.textContent="";
   var total=Math.max(1,t.all);
@@ -2068,19 +2688,42 @@ function renderJob(){
 /* ========================================================================
    Pillar sheet
    ======================================================================== */
+/* Sheets sit in the browser history, so Android Back (and the iPhone edge
+   swipe) closes the sheet instead of leaving the app. */
+var sheetHist=false, ignorePop=false, sheetFrom=null;
+function pushHist(tag){ try{ history.pushState({pf:tag}, ""); }catch(e){} }
 function openSheet(title, buildBody, buttons){
+  var wasOpen=!$("scrim").hidden;
+  if(!wasOpen){
+    sheetFrom=document.activeElement;
+    if(!sheetHist){ pushHist("sheet"); sheetHist=true; }
+  } else if(state.sheetOnClose){
+    var prev=state.sheetOnClose; state.sheetOnClose=null; prev();   // a sheet replacing another
+  }
+  state.sheetOnClose=null;
   $("sheetTitle").textContent=title;
-  var body=$("sheetBody"); body.textContent="";
+  var body=$("sheetBody"); body.textContent=""; body.scrollTop=0;
   buildBody(body);
   var foot=$("sheetFoot"); foot.textContent="";
   (buttons||[]).forEach(function(b){
-    var btn=el("button","btn"+(b.pri?" pri":"")+(b.danger?" danger":""), b.label);
+    var btn=el("button","btn"+(b.pri?" pri":"")+(b.danger?" danger":"")+(b.quiet?" quiet":""), b.label);
     btn.type="button"; btn.onclick=b.on;
     foot.appendChild(btn);
   });
   $("scrim").hidden=false;
+  // Focus goes into the sheet, so a keyboard or screen reader lands in it.
+  setTimeout(function(){ var h=$("sheetTitle"); if(h){ h.setAttribute("tabindex","-1"); h.focus({preventScroll:true}); } }, 30);
 }
-function closeSheet(){ $("scrim").hidden=true; }
+function closeSheet(fromPop){
+  if($("scrim").hidden) return;
+  var fn=state.sheetOnClose; state.sheetOnClose=null;
+  if(fn) fn();
+  $("scrim").hidden=true;
+  if(sheetHist && fromPop!==true){ sheetHist=false; ignorePop=true; try{ history.back(); }catch(e){ ignorePop=false; } }
+  else sheetHist=false;
+  if(sheetFrom && sheetFrom.focus && document.contains(sheetFrom)) sheetFrom.focus({preventScroll:true});
+  sheetFrom=null;
+}
 
 function field(parent, label, node){
   var w=el("div","field");
@@ -2175,7 +2818,8 @@ function openPillar(p, isNew){
     } else {
       crewI=field(body,"Planted by", input("fCrew","text",draft.crew||""));
     }
-    var costI=field(body,"Cost for this pillar (BZD)", input("fCost","number",draft.unit_cost!=null?draft.unit_cost:"",{step:"0.01",placeholder:String(state.unitCost),inputmode:"decimal"}));
+    var costI=input("fCost","number",draft.unit_cost!=null?draft.unit_cost:"",{step:"0.01",placeholder:String(state.unitCost),inputmode:"decimal"});
+    if(state.isAdmin) field(body,"Cost for this pillar (BZD)", costI);     // a price is an office decision
     var noteI=el("textarea","inp"); noteI.id="fNotes"; noteI.value=draft.notes||"";
     field(body,"Notes",noteI);
 
@@ -2183,7 +2827,9 @@ function openPillar(p, isNew){
     var pw=el("div","field");
     pw.appendChild(el("span","lbl","Photo"));
     var img=el("img","photo"); img.alt="";
-    var hasPhoto=false;
+    var hasPhoto=false, photoUnsaved=false;
+    // Closing without Save throws away a photo taken in this sheet.
+    state.sheetOnClose=function(){ if(photoUnsaved && !p._photoPending) idbDel("photos", draft.id); };
     idbGet("photos", draft.id).then(function(blob){
       if(blob){ hasPhoto=true; img.src=URL.createObjectURL(blob); }
       else if(draft.photo_path){ storageSign(draft.photo_path).then(function(u){ if(u){ img.src=u; hasPhoto=true; } }); }
@@ -2198,8 +2844,8 @@ function openPillar(p, isNew){
         compressImage(f).then(function(blob){
           idbPut("photos", blob, draft.id);
           img.src=URL.createObjectURL(blob);
-          draft._photoPending=true; hasPhoto=true;
-          toast("Photo saved on this phone");
+          draft._photoPending=true; hasPhoto=true; photoUnsaved=true;
+          toast("Photo added — press Save to keep it");
         });
       };
       inp.click();
@@ -2220,29 +2866,41 @@ function openPillar(p, isNew){
       } else {
         draft.crew = crewI.value.trim() || null;
       }
-      draft.unit_cost=costI.value===""?null:num(costI.value);
+      if(state.isAdmin) draft.unit_cost=costI.value===""?null:num(costI.value);
+      photoUnsaved=false;
       draft.notes=noteI.value.trim()||null;
       return draft;
     };
-  }, [
-    { label:"Delete", danger:true, on:function(){
+  }, isNew ? [
+    { label:"Cancel", on:closeSheet },
+    { label:"Save pillar", pri:true, on:function(){ saveFromSheet(p, true); } }
+  ] : [
+    { label:"Delete", danger:true, quiet:true, on:function(){
         confirmSheet("Delete "+(p.pillar_no||"this pillar")+"?", "It is removed here and in the office.", function(){
           p.deleted=true; touchPoint(p); savePoint(p); closeSheet(); requestDraw(); toast("Deleted");
         });
       }},
-    { label:"Move on plan", on:function(){
-        closeSheet(); state.moveId=p.id; showTab("plan");
-        $("hint").textContent="Tap the new position for "+(p.pillar_no||"pillar");
-        toast("Tap the new position");
+    { label:"Move", on:function(){
+        closeSheet(); showTab("plan"); setMoveBanner(p);
       }},
-    { label:"Save", pri:true, on:function(){
-        var d=$("sheetBody")._read();
-        Object.keys(d).forEach(function(k){ if(k!=="_photoPending") p[k]=d[k]; });
-        if(d._photoPending) p._photoPending=true;
-        touchPoint(p); savePoint(p); closeSheet(); requestDraw();
-        toast(navigator.onLine? "Saved" : "Saved on this phone");
-      }}
+    { label:"Save", pri:true, on:function(){ saveFromSheet(p, false); } }
   ]);
+}
+// Save the sheet into the record. A new pillar joins the job only here.
+function saveFromSheet(p, isNew){
+  var d=$("sheetBody")._read();
+  Object.keys(d).forEach(function(k){ if(k!=="_photoPending") p[k]=d[k]; });
+  if(d._photoPending) p._photoPending=true;
+  if(isNew && state.points.indexOf(p)<0) state.points.push(p);
+  touchPoint(p); savePoint(p); closeSheet(); requestDraw();
+  toast((isNew ? "Added "+(p.pillar_no||"pillar") : "Saved")+(navigator.onLine? "" : " on this phone"), "ok");
+}
+// Move mode is visible for as long as it is armed, and can be called off.
+function setMoveBanner(p){
+  state.moveId = p ? p.id : null;
+  var b=$("moveBar"); if(!b) return;
+  b.hidden=!p;
+  if(p) $("moveTxt").textContent="Tap the new position for "+(p.pillar_no||"this pillar");
 }
 
 function confirmSheet(title, msg, onYes){
@@ -2298,6 +2956,16 @@ function deliver(name, text, mime){
     { label:"Done", on:closeSheet }
   ]);
 }
+// A cell starting with = + - @ (or a tab or return) is a formula to Excel; a
+// crew note like "=HYPERLINK(...)" would run when the office opens the file.
+// Text cells get a leading apostrophe so they stay text. Numbers are left alone.
+function csvCell(v){
+  if(v==null) return "";
+  if(typeof v==="number") return String(v);
+  var s=String(v);
+  if(/^[=+\-@\t\r]/.test(s)) s="'"+s;
+  return /[",\n\r]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
+}
 function exportCSV(){
   var head=["pillar_no","status","type","lot","easting","northing","elevation","coord_system","date","crew","lat","lon","gps_accuracy","unit_cost","notes"];
   var lines=[head.join(",")];
@@ -2306,11 +2974,7 @@ function exportCSV(){
       p.pillar_no, p.status, p.pillar_type, p.lot, p.easting, p.northing, p.elevation,
       p.coord_system, p.set_on, p.crew, p.lat, p.lon, p.gps_accuracy,
       (p.unit_cost!=null?p.unit_cost:state.unitCost), p.notes
-    ].map(function(v){
-      if(v==null) return "";
-      var s=String(v);
-      return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s;
-    }).join(","));
+    ].map(csvCell).join(","));
   });
   deliver((state.job.job_number||"job")+"-pillars.csv", lines.join("\n"), "text/csv");
 }
@@ -2325,6 +2989,7 @@ function exportDXF(){
   d.push("0","ENDSEC","0","EOF");
   deliver((state.job.job_number||"job")+"-pillars.dxf", d.join("\n"), "application/dxf");
 }
+var IMPORT_MAX=5000;
 function importCSV(){
   var inp=$("csvPick"); inp.value="";
   inp.onchange=function(){
@@ -2345,24 +3010,40 @@ function importCSV(){
         var sw=el("label"); sw.style.cssText="display:flex;gap:9px;align-items:center;font-size:14px";
         sw.appendChild(skip); sw.appendChild(document.createTextNode("First line is a header"));
         b.appendChild(sw);
-        b._go=function(){ return {order:sel.value, skip:skip.checked}; };
+        var stSel=el("select","inp");
+        [["to_set","Corners still needing a CP"],["set","Pillars already planted"],["found","Existing marks found"]].forEach(function(o){
+          var op=el("option",null,o[1]); op.value=o[0]; stSel.appendChild(op);
+        });
+        field(b,"These points are",stSel);
+        var nLines=rows.length;
+        b.appendChild(el("p","note", nLines.toLocaleString()+" lines in the file."+(nLines>IMPORT_MAX? " Only the first "+IMPORT_MAX.toLocaleString()+" will be read." : "")+" A point already on the job at the same spot is skipped."));
+        b._go=function(){ return {order:sel.value, skip:skip.checked, status:stSel.value}; };
       }, [
         { label:"Cancel", on:closeSheet },
         { label:"Import", pri:true, on:function(){
-            var cfg=$("sheetBody")._go(), n=0;
-            rows.slice(cfg.skip?1:0).forEach(function(line){
+            var cfg=$("sheetBody")._go(), n=0, dup=0, added=[];
+            var have={}; state.points.forEach(function(p){ have[p.id]=p; });
+            rows.slice(cfg.skip?1:0, (cfg.skip?1:0)+IMPORT_MAX).forEach(function(line){
               var c=line.split(/[,\t;]/).map(function(s){return s.trim();});
               if(c.length<3) return;
               var a=num(c[1]), bb=num(c[2]);
               if(a==null||bb==null) return;
               var E = cfg.order==="name,e,n" ? a : bb;
               var N = cfg.order==="name,e,n" ? bb : a;
-              var p=newPoint({ pillar_no:c[0]||nextNo(), easting:E, northing:N,
-                elevation:num(c[3]), notes:c[4]||null, source:"import", status:"set" });
-              state.points.push(p); idbPut("points", stripRuntime(p)); n++;
+              // Same position, same id: importing the same file twice, or on two
+              // phones, makes one pillar per point, not two.
+              var id=cornerId(state.job.id, E, N);
+              if(have[id] && !have[id].deleted){ dup++; return; }
+              var p=newPoint({ id:id, pillar_no:(c[0]||"").slice(0,24)||"P"+String(state.points.length+1).padStart(3,"0"),
+                easting:E, northing:N, elevation:num(c[3]), notes:(c[4]||"").slice(0,500)||null,
+                source:"import", status:cfg.status, set_on: cfg.status==="to_set" ? null : today() });
+              state.points.push(p); have[id]=p; added.push(p); n++;
             });
-            closeSheet(); renderCounts(); renderList(); renderJob(); fitView(); scheduleSync();
-            toast(n+" points imported");
+            idbPutMany("points", added.map(stripRuntime));
+            added.forEach(function(p){ markJobPending(p.job_id); });
+            state.lastBatch=added.map(function(p){ return p.id; });
+            closeSheet(); invalidate(); state.viewFitted=false; fitView(); scheduleSync();
+            toast(n+" points imported"+(dup? " · "+dup+" already on the job" : ""), "ok");
           }}
       ]);
     });
@@ -2502,6 +3183,36 @@ function renderJobs(){
     host.appendChild(b);
   });
 }
+// Where the crew was in a job — tab, map position, hidden layers, plant mode —
+// so reopening the app puts them back there instead of at the top of a list.
+var uiTimer=null;
+function saveUi(){
+  if(!state.job) return;
+  clearTimeout(uiTimer);
+  var job=state.job.id;
+  uiTimer=setTimeout(function(){
+    var v=state.view, ui={ tab:state.tab, hidden:state.hiddenLayers, plant:state.plantMode };
+    if(state.viewFitted && cw>2) { ui.e=v.tx+cw/(2*v.s); ui.n=v.ty+ch/(2*v.s); ui.s=v.s; }
+    else { var old=readUi(job); if(old.s){ ui.e=old.e; ui.n=old.n; ui.s=old.s; } }
+    ls("pf.ui:"+job, JSON.stringify(ui));
+  }, 400);
+}
+function readUi(id){ try{ return JSON.parse(ls("pf.ui:"+id)||"{}")||{}; }catch(e){ return {}; } }
+
+function newestPlan(list){
+  return list.slice().sort(function(a,b){ return String(a.at||"").localeCompare(String(b.at||"")); }).pop()||null;
+}
+function showPlan(rec, j, note){
+  if(!state.job || state.job.id!==j.id) return false;           // the job moved on
+  try{ state.plan=parseDXF(rec.text); }
+  catch(e){ toast("The job's drawing would not open: "+String(e.message||e), "err"); return false; }
+  state.satAffine=null;
+  $("planEmpty").hidden=true;
+  state.viewFitted=false; fitView(); requestDraw();
+  if(note) toast(note);
+  return true;
+}
+
 function openJob(j){
   state.job=j;
   ls("pf.job", JSON.stringify(j));
@@ -2509,26 +3220,26 @@ function openJob(j){
   $("barSub").textContent=[j.job_number,j.client_name].filter(Boolean).join(" · ")||"—";
   $("topbar").hidden=false; $("tabbar").hidden=false;
   $("topbar").classList.add("injob");   // shows the back arrow
+  if(!history.state || history.state.pf!=="job") pushHist("job");
+  busy("Opening "+(j.job_number||"job")+"…");
 
   Promise.all([
-    idbAll("points"),
-    idbGet("kv","lastPull:"+j.id),
-    idbAll("plans"),
+    idbByJob("points", j.id),
+    idbByJob("plans", j.id),
     idbGet("kv","sat:"+j.id)
   ]).then(function(r){
-    state.points = (r[0]||[]).filter(function(p){ return p.job_id===j.id; });
-    state.lastPull = r[1]||null;
-    var sat=r[3];
+    if(!state.job || state.job.id!==j.id) return;                 // another job was opened meanwhile
+    state.points = r[0]||[];
+    var sat=r[2];
     state.sat = !!(sat && sat.on);
     state.satDE = sat && sat.de || 0;
     state.satDN = sat && sat.dn || 0;
     state.satOpacity = sat && sat.op!=null ? sat.op : 1;
-    state.satZone = sat && sat.zone || 16;
     state.satMaxZ = sat && sat.maxz || 18;
     state.satAffine = null;
     $("cSat").setAttribute("aria-pressed", String(state.sat));
     $("cAlign").hidden = !state.sat;
-    var plan=(r[2]||[]).filter(function(p){ return p.job_id===j.id; }).pop();
+    var plan=newestPlan(r[1]||[]);
 
     // Every job starts clean. Anything carried over from the job before is a
     // way to file a pillar against the wrong one — a stale drawing most of all,
@@ -2539,31 +3250,32 @@ function openJob(j){
     $("q").value="";
     $("cPlant").setAttribute("aria-pressed","false");
     $("planEmpty").hidden=false;
-    $("hint").textContent="Tap a corner to place a pillar";
+    setMoveBanner(null);
 
-    if(plan && plan.text){
-      try{ state.plan=parseDXF(plan.text); $("planEmpty").hidden=true; }catch(e){}
-    } else {
-      // Nothing cached on this device — pull the job's drawing from the office.
-      fetchPlanFromCloud(j).then(function(got){
-        if(!got || !state.job || state.job.id!==j.id) return;   // job moved on
-        try{
-          state.plan=parseDXF(got.text);
-          $("planEmpty").hidden=true;
-          state.viewFitted=false; fitView(); requestDraw();
-          toast("Loaded "+got.name+" from the office");
-        }catch(e){ toast("The job's drawing would not open: "+String(e.message||e)); }
+    // ...then put back what this crew had open on this job.
+    var ui=readUi(j.id);
+    if(ui.hidden) state.hiddenLayers=ui.hidden;
+    if(ui.s) state.pendingView={ e:ui.e, n:ui.n, s:ui.s };
+
+    var local=plan && plan.text ? plan : null;
+    // Parse after the "Opening…" indicator has had a frame to paint.
+    setTimeout(function(){
+      if(local) showPlan(local, j);
+      busy();
+      // Check the office for a newer drawing, or the first one if there is none here.
+      fetchPlanFromCloud(j, local).then(function(got){
+        if(got) showPlan(got, j, local ? "Updated to the office's newest drawing: "+got.name : "Loaded "+got.name+" from the office");
       });
-    }
+    }, 30);
 
-    showTab("list");
-    renderCounts(); renderList(); renderJob();
-    state.viewFitted=false;
-    fitView();
+    showTab(ui.tab==="plan" || ui.tab==="job" ? ui.tab : (local ? "plan" : "list"));
+    state.listShown=LIST_PAGE; invalidate();
     loadMaterial();
-    loadMe().then(loadCrew);
+    loadMe().then(loadCrew).then(function(){
+      if(ui.plant && state.planter && state.job && state.job.id===j.id) setPlant(true, true);
+    });
     ensureGps();                      // GPS comes on with the job, no button to find
-    plantProgress();                  // and the chip reads true even if it was left off
+    plantProgress();
     syncNow();
     startPolling();
   });
@@ -2572,39 +3284,107 @@ function openJob(j){
 /* ========================================================================
    DXF loading
    ======================================================================== */
+// Drawings loaded on a phone wait in this queue until they reach the office.
+function pendingPlans(){ try{ return JSON.parse(ls("pf.pendplans")||"[]"); }catch(e){ return []; } }
+function setPendingPlans(l){ ls("pf.pendplans", JSON.stringify(l)); }
+
 function pickDXF(){
   var inp=$("dxfPick"); inp.value="";
   inp.onchange=function(){
     var f=inp.files&&inp.files[0]; if(!f) return;
-    toast("Reading "+f.name+"…");
+    var job=state.job;
+    if(f.size>60*1024*1024){ toast("That file is over 60 MB — export just the drawing you need from CAD", "err"); return; }
+    busy("Reading "+f.name+"…");
     f.text().then(function(txt){
+      return new Promise(function(r){ setTimeout(function(){ r(txt); }, 30); });   // let the indicator paint
+    }).then(function(txt){
       var P;
       try { P=parseDXF(txt); }
-      catch(e){ toast(String(e.message||e)); return; }
-      state.plan=P; state.hiddenLayers={};
+      catch(e){ busy(); toast(String(e.message||e), "err"); return; }
+      busy();
+      if(!state.job || state.job.id!==job.id) return;
+      state.plan=P; state.hiddenLayers={}; state.satAffine=null;
       $("planEmpty").hidden=true;
-      idbPut("plans",{id:uuid(), job_id:state.job.id, name:f.name, text:txt, at:nowISO()});
+      var rec={ id:uuid(), job_id:job.id, name:f.name, text:txt, at:nowISO(), remote:false };
+      // Keep one drawing per job on the phone; queue this one for the office.
+      idbByJob("plans", job.id).then(function(old){
+        old.forEach(function(o){ if(o.id!==rec.id) idbDel("plans", o.id); });
+        return idbPut("plans", rec);
+      }).then(function(){
+        var q=pendingPlans(); q.push(rec.id); setPendingPlans(q);
+        uploadPendingPlans().then(function(){ updateLamp(); });
+      });
       state.viewFitted=false;
-      showTab("plan"); fitView();
+      showTab("plan"); fitView(); saveUi();
       toast(f.name+" — "+P.items.length.toLocaleString()+" lines"+
-            (P.textSkipped? ", "+P.textSkipped.toLocaleString()+" labels left out" : ""));
-      uploadPlan(f.name, txt, P);
+            (P.textSkipped? ", "+P.textSkipped.toLocaleString()+" labels left out" : "")+
+            (navigator.onLine ? "" : ". It goes to the office when there is signal."));
     });
   };
   inp.click();
 }
-function uploadPlan(name, txt, P){
-  if(!navigator.onLine) return;
-  var id=uuid(), path="plans/"+state.job.id+"/"+id+".dxf";
-  storageUpload(path, new Blob([txt],{type:"application/dxf"}), "application/dxf")
-    .then(function(){
-      return rest("pillar_plans",{method:"POST",headers:{Prefer:"return=minimal"},
-        body:JSON.stringify({ id:id, job_id:state.job.id, name:name, dxf_path:path,
-          min_x:P.bounds.minx, min_y:P.bounds.miny, max_x:P.bounds.maxx, max_y:P.bounds.maxy,
-          entity_count:P.items.length })});
+// Send queued drawings to the office, each under the job it was loaded for.
+function uploadPendingPlans(){
+  var q=pendingPlans();
+  if(!q.length || !navigator.onLine || !auth.session || auth.dead) return Promise.resolve();
+  return inSeries(q.slice(), function(id){
+    return idbGet("plans", id).then(function(rec){
+      if(!rec || rec.remote!==false){ setPendingPlans(pendingPlans().filter(function(x){ return x!==id; })); return; }
+      var P; try{ P=parseDXF(rec.text); }catch(e){ P=null; }
+      var path="plans/"+rec.job_id+"/"+rec.id+".dxf";
+      return storageUpload(path, new Blob([rec.text],{type:"application/dxf"}), "application/dxf")
+        .catch(function(e){ if(!/exist|duplicate/i.test(String(e.message||e))) throw e; })   // already there from a retry
+        .then(function(){
+          return rest("pillar_plans?on_conflict=id",{ method:"POST",
+            headers:{ Prefer:"resolution=ignore-duplicates,return=minimal" },
+            body:JSON.stringify({ id:rec.id, job_id:rec.job_id, name:rec.name, dxf_path:path,
+              min_x:P?P.bounds.minx:null, min_y:P?P.bounds.miny:null, max_x:P?P.bounds.maxx:null, max_y:P?P.bounds.maxy:null,
+              entity_count:P?P.items.length:null }) });
+        })
+        .then(function(){
+          rec.remote=true; return idbPut("plans", rec);
+        })
+        .then(function(){
+          setPendingPlans(pendingPlans().filter(function(x){ return x!==id; }));
+          if(state.job && state.job.id===rec.job_id) toast("Drawing sent to the office — "+rec.name);
+        });
+    }).catch(function(){ /* stays queued for the next sync */ });
+  });
+}
+// The office's newest drawing for a job, if it is newer than the one here.
+function fetchPlanFromCloud(job, local){
+  if(!navigator.onLine || !auth.session || auth.dead) return Promise.resolve(null);
+  return rest("pillar_plans?select=id,name,dxf_path,created_at&job_id=eq."+job.id+"&order=created_at.desc&limit=1")
+    .then(function(rows){
+      var row=rows && rows[0];
+      if(!row || !row.dxf_path) return null;
+      if(local){
+        if(local.id===row.id || local.remote===false) return null;          // have it, or ours is newer and on its way up
+        if(local.at && new Date(local.at)>=new Date(row.created_at)) return null;
+      }
+      return storageDownload(row.dxf_path).then(function(text){
+        if(!text) return null;
+        var rec={ id:row.id, job_id:job.id, name:row.name, text:text, at:row.created_at, remote:true };
+        return idbByJob("plans", job.id).then(function(old){
+          old.forEach(function(o){ if(o.id!==rec.id) idbDel("plans", o.id); });
+          return idbPut("plans", rec);
+        }).then(function(){ return rec; });
+      });
     })
-    .then(function(){ toast("Plan uploaded — the office can open it too"); })
-    .catch(function(){ /* quiet: plan still works locally */ });
+    .catch(function(){ return null; });
+}
+
+// The office stopped accepting this sign-in. Ask for it again without losing
+// the job, the records on the phone, or the screen the crew was on.
+function promptSignIn(){
+  state.reauth=true;
+  showAuth();
+  var em=auth.session && auth.session.user && auth.session.user.email || ls("pf.email") || "";
+  $("aEmail").value=em;
+  $("authErr").hidden=false;
+  $("authErr").className="warn";
+  $("authErr").textContent="Your sign-in has run out. Sign in again to send what is on this phone — nothing is lost.";
+  setTimeout(function(){ $("aPass").focus(); }, 50);
 }
 /* ---- every corner on the plan gets a pillar ---------------------------- */
 
@@ -2665,7 +3445,7 @@ function placeCorners(list, status, type){
     var m=String(p.pillar_no||"").match(/(\d+)\s*$/);
     if(m){ var n=parseInt(m[1],10); if(n>max) max=n; }
   });
-  var batch=[], byId={};
+  var batch=[], byId={}, writes=[];
   state.points.forEach(function(p){ byId[p.id]=p; });
   list.forEach(function(c){
     var id=cornerId(state.job.id, c[0], c[1]);
@@ -2675,7 +3455,7 @@ function placeCorners(list, status, type){
       // corners again brings it back as this crew's own record.
       if(had.deleted){
         had.deleted=false; had.status=status; had.pillar_type=type;
-        touchPoint(had); idbPut("points", stripRuntime(had)); batch.push(id);
+        touchPoint(had); writes.push(had); batch.push(id);
       }
       return;
     }
@@ -2683,11 +3463,14 @@ function placeCorners(list, status, type){
     var p=newPoint({ id:id, pillar_no:"P"+String(max).padStart(3,"0"),
                      easting:c[0], northing:c[1],
                      status:status, pillar_type:type, source:"plan-corners", _seed:true });
-    state.points.push(p); byId[id]=p; batch.push(id);
-    idbPut("points", stripRuntime(p));
+    state.points.push(p); byId[id]=p; batch.push(id); writes.push(p);
   });
+  idbPutMany("points", writes.map(stripRuntime));
+  markJobPending(state.job.id);
   state.lastBatch=batch;
-  renderCounts(); renderList(); renderJob(); requestDraw(); updateLamp(); scheduleSync();
+  // Undo stays reachable after this sheet closes (from the Corners sheet).
+  ls("pf.lastbatch:"+state.job.id, JSON.stringify(batch));
+  invalidate(); requestDraw(); scheduleSync();
   closeSheet();
   placedSheet(batch.length, status);
 }
@@ -2699,25 +3482,34 @@ function placedSheet(n, status){
       : "Every corner now has a pillar waiting. Mark each one as you set it."));
     b.appendChild(el("p","note","Wrong layer? Undo removes the batch — but never a corner that has been planted, photographed or written on, by this crew or another."));
   },[
-    { label:"Undo", danger:true, on:function(){
-        var ids={}; (state.lastBatch||[]).forEach(function(i){ ids[i]=1; });
-        var removed=0, kept=0;
-        state.points.forEach(function(p){
-          if(!ids[p.id] || p.deleted) return;
-          // A corner id is shared with any other crew that placed the same
-          // corner. Once it has synced, only remove it if nobody has done
-          // anything to it — a planted pillar is real, whoever planted it.
-          var untouched = p._seed ||
-            (p.status==="to_set" && !p.planted_by && !p.notes && !p.photo_path);
-          if(!untouched){ kept++; return; }
-          p.deleted=true; touchPoint(p); idbPut("points",stripRuntime(p)); removed++;
-        });
-        state.lastBatch=null;
-        renderCounts(); renderList(); renderJob(); requestDraw(); scheduleSync(); closeSheet();
-        toast("Removed "+removed+(kept? " · kept "+kept+" already worked on" : ""));
-      }},
+    { label:"Undo", quiet:true, on:function(){ closeSheet(); undoBatch(); } },
     { label:"Done", pri:true, on:closeSheet }
   ]);
+}
+// The last batch placed by Corners (or imported), still undoable after its
+// sheet has closed, from the Corners sheet.
+function lastBatch(){
+  if(state.lastBatch && state.lastBatch.length) return state.lastBatch;
+  try{ return JSON.parse(ls("pf.lastbatch:"+(state.job&&state.job.id))||"null"); }catch(e){ return null; }
+}
+function undoBatch(){
+  var ids={}; (lastBatch()||[]).forEach(function(i){ ids[i]=1; });
+  var removed=0, kept=0, writes=[];
+  state.points.forEach(function(p){
+    if(!ids[p.id] || p.deleted) return;
+    // A corner id is shared with any other crew that placed the same corner.
+    // Only remove it if nobody has done anything to it — a planted pillar is
+    // real, whoever planted it. (The sync merge enforces the same rule against
+    // what other phones have done since.)
+    var untouched = p._seed || (p.status==="to_set" && !p.planted_by && !p.notes && !p.photo_path);
+    if(!untouched){ kept++; return; }
+    p.deleted=true; touchPoint(p); writes.push(p); removed++;
+  });
+  idbPutMany("points", writes.map(stripRuntime));
+  state.lastBatch=null;
+  if(state.job) ls("pf.lastbatch:"+state.job.id, "null");
+  invalidate(); requestDraw(); scheduleSync();
+  toast("Removed "+removed+(kept? " · kept "+kept+" already worked on" : ""), "ok");
 }
 
 function cornerSheet(){
@@ -2729,7 +3521,12 @@ function cornerSheet(){
 
   // Corners on the drawing are outstanding work until the crew gets there.
   var picked={}, tol=0.02, status="to_set", type="concrete";
-  names.forEach(function(n){ picked[n] = !state.hiddenLayers[n]; });
+  // Pre-tick the layers that look like boundaries. Ticking every layer turns
+  // contours, text frames and the title block into thousands of fake corners.
+  var looks=/lot|bound|parcel|plot|block|subdiv|survey|line|prop|cadast/i;
+  var guess=names.filter(function(n){ return looks.test(n) && !state.hiddenLayers[n]; });
+  if(!guess.length) guess=[names[0]];
+  names.forEach(function(n){ picked[n] = guess.indexOf(n)>=0; });
 
   openSheet("A pillar at every corner", function(body){
     body.appendChild(el("p","note","Drops a pillar on every corner of the layers you pick. A corner shared by neighbouring lots counts once."));
@@ -2811,7 +3608,8 @@ function cornerSheet(){
         var r=$("sheetBody")._result;
         if(r && r.fresh.length) placeCorners(r.fresh, status, type);
       }}
-  ]);
+  ].concat((lastBatch()||[]).length ? [{ label:"Undo last batch ("+lastBatch().length+")", quiet:true,
+        on:function(){ closeSheet(); undoBatch(); } }] : []));
 }
 
 function saveSatSettings(){
@@ -2923,23 +3721,6 @@ function prefetchTiles(btn){
   });
 }
 
-// The drawing lives in the office too. Without this a new phone, or the PC,
-// opens the job and sees nothing to work on even though the DXF was uploaded.
-function fetchPlanFromCloud(job){
-  if(!navigator.onLine || !auth.session) return Promise.resolve(null);
-  return rest("pillar_plans?job_id=eq."+job.id+"&order=created_at.desc&limit=1")
-    .then(function(rows){
-      if(!rows || !rows.length || !rows[0].dxf_path) return null;
-      var row=rows[0];
-      return storageDownload(row.dxf_path).then(function(text){
-        if(!text) return null;
-        idbPut("plans", { id:row.id, job_id:job.id, name:row.name, text:text, at:nowISO() });
-        return { name:row.name, text:text };
-      });
-    })
-    .catch(function(){ return null; });
-}
-
 function layerSheet(){
   if(!state.plan){ toast("No plan loaded"); return; }
   var names=Object.keys(state.plan.items.reduce(function(a,o){ a[o.layer]=1; return a; },{})).sort();
@@ -2950,7 +3731,7 @@ function layerSheet(){
       row.style.cssText="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft)";
       var c=el("input"); c.type="checkbox"; c.checked=!state.hiddenLayers[n];
       c.style.cssText="width:20px;height:20px";
-      c.onchange=function(){ state.hiddenLayers[n]=!c.checked; requestDraw(); };
+      c.onchange=function(){ state.hiddenLayers[n]=!c.checked; requestDraw(); saveUi(); };
       row.appendChild(c); row.appendChild(el("span",null,n||"(no layer)"));
       b.appendChild(row);
     });
@@ -2960,6 +3741,49 @@ function layerSheet(){
 /* ========================================================================
    Tabs / boot
    ======================================================================== */
+// Sign out is said out loud: what has not reached the office, and that an
+// offline phone cannot sign back in until it has signal. It can also clear the
+// firm's records off the phone, for a shared or handed-back phone.
+function signOutSheet(){
+  idbAll("points").then(function(all){
+    var waiting=all.filter(function(p){ return p._dirty; }).length + pendingPlans().length;
+    openSheet("Sign out?", function(b){
+      if(waiting) b.appendChild(el("p","warn", waiting+" record"+(waiting===1?" has":"s have")+" not reached the office yet. They stay on this phone and go up the next time anyone signs in here with signal."));
+      if(!navigator.onLine) b.appendChild(el("p","warn","There is no signal. You will not be able to sign back in until there is."));
+      b.appendChild(el("p",null,"Signing out ends this sign-in at the office as well, so this phone cannot use it again."));
+    }, waiting ? [
+      { label:"Cancel", on:closeSheet },
+      { label:"Sign out", danger:true, pri:true, on:function(){ closeSheet(); doSignOut(false); } }
+    ] : [
+      { label:"Cancel", on:closeSheet },
+      { label:"Sign out and clear phone", quiet:true, on:function(){ closeSheet(); doSignOut(true); } },
+      { label:"Sign out", pri:true, on:function(){ closeSheet(); doSignOut(false); } }
+    ]);
+  });
+}
+function doSignOut(clear){
+  auth.out(); state.job=null; state.points=[]; state.plan=null;
+  state.isAdmin=false; state.myEmployeeId=null; state.planter=null; applyRole();
+  stopLocate({keepPref:true});      // signing out is not the crew choosing GPS off
+  clearInterval(pollTimer);
+  try{ localStorage.removeItem("pf.job"); localStorage.removeItem("pf.planter"); }catch(e){}
+  if(clear && DB){
+    ["points","plans","photos","kv"].forEach(function(st){ try{ tx(st,"readwrite").clear(); }catch(e){} });
+    try{ Object.keys(localStorage).filter(function(k){ return k.indexOf("pf.")===0 && k!=="pf.device" && k!=="pf.gps"; })
+      .forEach(function(k){ localStorage.removeItem(k); }); }catch(e){}
+    if(window.caches) caches.keys().then(function(ks){ ks.forEach(function(k){ if(/tiles/.test(k)) caches.delete(k); }); });
+    toast("Signed out, and this phone's Pillar Flow records are cleared");
+  }
+  showAuth();
+}
+function setPlant(on, quiet){
+  state.plantMode=on;
+  $("cPlant").setAttribute("aria-pressed",String(on));
+  plantProgress(); saveUi();
+  if(!quiet) toast(on
+    ? "Planting as "+state.planter.name+" — tap each corner as the CP goes in"
+    : "Plant mode off");
+}
 function showTab(t){
   state.tab=t;
   $("app").classList.remove("solo");   // tabs visible -> left rail on wide screens
@@ -2972,7 +3796,8 @@ function showTab(t){
     b.setAttribute("aria-selected", String(b.dataset.tab===t));
   });
   if(t==="plan"){ sizeCanvas(); if(!state.viewFitted) fitView(); requestDraw(); }
-  if(t==="job") renderJob();
+  invalidate();
+  saveUi();                       // the newly shown view catches up
 }
 function showJobs(){
   $("app").classList.add("solo");      // no tabs yet, so no empty rail column
@@ -3003,7 +3828,9 @@ function wire(){
       state.user=j.user; ls("pf.email", $("aEmail").value.trim());
       $("aPass").value="";
       btn.disabled=false; btn.textContent="Sign in";
-      showJobs();
+      $("authErr").className="err";
+      var back=state.reauth && state.job; state.reauth=false;
+      if(back){ openJob(state.job); syncNow(true); } else showJobs();
     }).catch(function(err){
       btn.disabled=false; btn.textContent="Sign in";
       $("authErr").hidden=false;
@@ -3016,10 +3843,12 @@ function wire(){
   });
   $("jobQ").oninput=renderJobs;
   $("jobRefresh").onclick=function(){ loadJobs(true); toast("Refreshing jobs"); };
-  $("q").oninput=function(){ state.q=this.value; renderList(); };
-  $("addNew").onclick=function(){
-    var p=newPoint({}); state.points.push(p); savePoint(p); openPillar(p,true);
+  var qTimer=null;
+  $("q").oninput=function(){
+    var v=this.value; clearTimeout(qTimer);
+    qTimer=setTimeout(function(){ state.q=v; state.listShown=LIST_PAGE; invalidate(); }, 140);
   };
+  $("addNew").onclick=function(){ openPillar(newPoint({}), true); };   // joins the job on Save
   $("addHere").onclick=function(){
     var c=S2W(cw/2, ch/2);
     newPillarAt(c[0], c[1], "plan");
@@ -3046,14 +3875,6 @@ function wire(){
     }
   };
   $("cAlign").onclick=alignSheet;
-  function setPlant(on){
-    state.plantMode=on;
-    $("cPlant").setAttribute("aria-pressed",String(on));
-    plantProgress();
-    toast(on
-      ? "Planting as "+state.planter.name+" — tap each corner as the CP goes in"
-      : "Plant mode off");
-  }
   $("cPlant").onclick=function(){
     if(state.plantMode){ setPlant(false); return; }
     // Every planting is logged against someone, so ask once before starting.
@@ -3091,19 +3912,23 @@ function wire(){
   $("impCsv").onclick=importCSV;
   $("syncBtn").onclick=function(){ syncNow(true); };
   $("switchJob").onclick=showJobs;
-  $("toJobs").onclick=showJobs;
+  // The back arrow and the phone's Back both leave the job for the job list.
+  $("toJobs").onclick=function(){
+    if(history.state && history.state.pf==="job"){ ignorePop=true; try{ history.back(); }catch(e){ ignorePop=false; } }
+    showJobs();
+  };
+  window.addEventListener("popstate", function(){
+    if(ignorePop){ ignorePop=false; return; }
+    if(!$("scrim").hidden){ sheetHist=false; closeSheet(true); return; }
+    if(state.moveId){ setMoveBanner(null); pushHist("job"); return; }
+    if(state.job && !$("tabbar").hidden){ showJobs(); return; }
+  });
   // the job name in the bar is a second, more obvious way back
   $("barTitle").parentNode.onclick=function(){
     if($("topbar").classList.contains("injob")) showJobs();
   };
-  $("signOut").onclick=function(){
-    auth.out(); state.job=null; state.points=[]; state.plan=null;
-    state.isAdmin=false; state.myEmployeeId=null; state.planter=null; applyRole();
-    stopLocate({keepPref:true});      // signing out is not the crew choosing GPS off
-    try{ localStorage.removeItem("pf.job"); }catch(e){}
-    showAuth();
-  };
-  $("lamp").onclick=function(){ syncNow(true); };
+  $("signOut").onclick=signOutSheet;
+  $("lamp").onclick=function(){ if(auth.dead) promptSignIn(); else syncNow(true); };
 
   window.addEventListener("online", function(){ updateLamp(); syncNow(); });
   window.addEventListener("offline", updateLamp);
@@ -3119,6 +3944,9 @@ function boot(){
 
   setupCanvas();
   wire();
+  setupTheme();
+  setupKeyboard();
+  $("moveCancel").onclick=function(){ setMoveBanner(null); };
   auth.load();
 
   idbGet("kv","lastSync").then(function(v){ state.lastSync=v||null; });
@@ -3133,10 +3961,9 @@ function boot(){
   updateLamp();
 }
 
-// Offline support and updates. The page itself is fetched fresh whenever there
-// is signal, so a new version arrives on the next open. If the app is already
-// open when a new version lands, say so instead of reloading under someone's
-// thumb mid-plant.
+// Offline support and updates. The app opens from the phone instantly; a new
+// version downloads in the background and the Reload bar offers it, instead of
+// reloading under someone's thumb mid-plant.
 function setupUpdates(){
   var kb=$("kBuild");
   if(kb) kb.textContent = BUILD.indexOf("__")===0 ? "development copy" : BUILD;
