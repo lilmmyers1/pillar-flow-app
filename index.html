@@ -466,10 +466,11 @@ h2.sec{font:700 13px/1 var(--f-cond);letter-spacing:.09em;text-transform:upperca
         <div class="card headline span2">
           <h2 class="sec">Pillars planted</h2>
           <div class="big"><b class="mono" id="hPlanted">0</b><span id="hOf">of 0 corners</span><span class="pct" id="hPct">0%</span></div>
+          <p class="note" id="hFrom" style="margin:6px 0 0">—</p>
           <div class="bar" id="useBar"></div>
           <div class="legendrow">
             <span><i style="background:var(--st-set)"></i>Planted <b id="kUsed">0</b></span>
-            <span><i style="background:var(--st-toset)"></i>Needs CP <b id="kToSet">0</b></span>
+            <span><i style="background:var(--st-toset)"></i>Still to set <b id="kToSet">0</b></span>
             <span><i style="background:var(--st-found)"></i>Found <b id="kFound">0</b></span>
             <span><i style="background:var(--st-missing)"></i>Missing <b id="kMissing">0</b></span>
           </div>
@@ -495,6 +496,10 @@ h2.sec{font:700 13px/1 var(--f-cond);letter-spacing:.09em;text-transform:upperca
             <input class="inp mono" id="unitCost" type="number" step="0.01" min="0" inputmode="decimal">
             <p class="note" id="rateNote" hidden>The <b>concrete pillar</b> rate in your database. Changing it here changes it for everyone.</p>
           </div>
+          <dl style="margin:0">
+            <div class="kv"><dt>All CP needed &times; rate</dt><dd id="costNeed">$0.00</dd></div>
+            <div class="kv"><dt>Still to set &times; rate</dt><dd id="costLeft">$0.00</dd></div>
+          </dl>
           <div class="total"><span>Concrete pillars planted &times; rate</span><b class="mono" id="costTotal">$0.00</b></div>
           <p class="note" id="costNote">Only concrete pillars marked Planted or Rebuilt are counted.</p>
           <button class="btn wide" id="postCost" type="button" style="margin-top:12px" hidden>Post to job costs</button>
@@ -573,7 +578,7 @@ var SB = {
 };
 // Filled in by build.sh. Shown on the Job tab so you can tell which version a
 // phone is actually running.
-var BUILD = "20261110-1050-1cd3518";
+var BUILD = "20261111-1557-ed66ea9";
 
 // Every corner on the drawing needs a CP; the crew plants them line by line.
 // "to_set" is the corner as it stands before they get there — pegged, no pillar.
@@ -1230,8 +1235,15 @@ function planNodes(P, pick, tol){
       if(!o.nv) continue;
       var L=o.pts.length;
       if(o.nv===2){ add(o.pts[0],o.pts[1]); add(o.pts[L-2],o.pts[L-1]); continue; }
+      var closed = L>=8 && o.pts[0]===o.pts[L-2] && o.pts[1]===o.pts[L-1];
       for(var j=0;j<L;j+=2){
-        add(o.pts[j],o.pts[j+1]);
+        var end = (j===0 || j===L-2);
+        if(end && !closed) add(o.pts[j],o.pts[j+1]);
+        else {
+          var pj = (j===0 || j===L-2) ? L-4 : j-2, nj = (j===0 || j===L-2) ? 2 : j+2;
+          if(!straightThrough(o.pts[pj],o.pts[pj+1], o.pts[j],o.pts[j+1], o.pts[nj],o.pts[nj+1]))
+            add(o.pts[j],o.pts[j+1]);
+        }
         if(j+3<L && (o.pts[j]!==o.pts[j+2] || o.pts[j+1]!==o.pts[j+3]))
           segs.push(o.pts[j],o.pts[j+1],o.pts[j+2],o.pts[j+3]);
       }
@@ -1249,6 +1261,15 @@ function planNodes(P, pick, tol){
   return out;
 }
 
+// A vertex the line runs straight through (CAD often leaves these where a
+// line was split or joined) is not a corner: no bend, nothing to mark.
+// Anything turning more than about 0.05° counts.
+function straightThrough(ax,ay,bx,by,cx,cy){
+  var ux=bx-ax, uy=by-ay, vx=cx-bx, vy=cy-by;
+  var lu=Math.hypot(ux,uy), lv=Math.hypot(vx,vy);
+  if(lu<1e-9 || lv<1e-9) return false;
+  return (ux*vx+uy*vy)>0 && Math.abs(ux*vy-uy*vx) < 8.7e-4*lu*lv;
+}
 // Where straight segments cross part-way along both. A grid keeps it from
 // testing every pair; each crossing is counted in the one cell it falls in,
 // so a pair sharing several cells is not found twice. Segments that only
@@ -1289,7 +1310,9 @@ function crossings(seg, add){
         var d=rx*sy-ry*sx;
         if(Math.abs(d) < 1e-12*(Math.abs(rx*sy)+Math.abs(ry*sx)+1e-30)) continue;   // parallel
         var t=((qx-px)*sy-(qy-py)*sx)/d, u=((qx-px)*ry-(qy-py)*rx)/d;
-        if(t<=1e-9 || t>=1-1e-9 || u<0 || u>1) continue;     // at an end, or no cross
+        if(t<-1e-9 || t>1+1e-9 || u<-1e-9 || u>1+1e-9) continue;   // they do not meet
+        var tEnd = t<=1e-9 || t>=1-1e-9, uEnd = u<=1e-9 || u>=1-1e-9;
+        if(tEnd && uEnd) continue;                         // end to end: already corners
         var x=px+t*rx, y=py+t*ry;
         if(Math.floor((x-minx)/c)!==gx || Math.floor((y-miny)/c)!==gy) continue;
         add(x,y);
@@ -2714,11 +2737,22 @@ function renderJob(){
   var used=t.set+t.rebuilt;
   $("kUsed").textContent=used; $("kToSet").textContent=t.to_set;
   $("kFound").textContent=t.found; $("kMissing").textContent=t.missing;
-  // Headline: corners that needed a CP, and how many of them have one now.
-  var need=used+t.to_set;
-  $("hPlanted").textContent=used.toLocaleString();
-  $("hOf").textContent="of "+need.toLocaleString()+" corner"+(need===1?"":"s");
-  $("hPct").textContent = need ? Math.floor(used/need*100)+"%" : "—";
+  // Headline: CP the drawing needs, and how many are in. Needed = every corner
+  // on the drawing less existing marks found; without a drawing, the pillars
+  // on record stand in for it.
+  var ci=state.cornerInfo, done=t.set+t.rebuilt;
+  var need = ci ? Math.max(ci.corners - t.found, 0) : done+t.to_set+t.missing;
+  var left = ci ? Math.max(need - done, 0) : t.to_set+t.missing;
+  $("kToSet").textContent=left;
+  $("hPlanted").textContent=done.toLocaleString();
+  $("hOf").textContent="of "+need.toLocaleString()+" CP needed";
+  $("hFrom").textContent = ci
+    ? ci.corners.toLocaleString()+" corners on the drawing ("+ci.crossings.toLocaleString()+" where lines cross)"+(t.found? ", less "+t.found+" existing mark"+(t.found===1?"":"s")+" found" : "")+". "+left.toLocaleString()+" still to set."
+    : "No drawing loaded — counting the pillars on record.";
+  var rate=Number(state.unitCost||0);
+  $("costNeed").textContent=money(need*rate);
+  $("costLeft").textContent=money(left*rate);
+  $("hPct").textContent = need ? Math.min(100, Math.floor(done/need*100))+"%" : "—";
 
   var bar=$("useBar"); bar.textContent="";
   var total=Math.max(1,t.all);
@@ -3323,7 +3357,10 @@ function showPlan(rec, j, note){
   $("planEmpty").hidden=true;
   state.viewFitted=false; fitView(); requestDraw();
   if(note) toast(note);
+  state.planRec=rec;
   autoPlaceNodes();
+  reportCorners(rec, state.cornerInfo);
+  invalidate();
   return true;
 }
 
@@ -3360,6 +3397,7 @@ function openJob(j){
     // since a tap on it would use the other job's coordinates.
     state.plan=null; state.hiddenLayers={}; state.sel=null;
     state.moveId=null; state.lastBatch=null; state.plantMode=false;
+    state.cornerInfo=null; state.planRec=null;
     state.filter="all"; state.typeFilter="all"; state.q="";
     $("q").value="";
     $("cPlant").setAttribute("aria-pressed","false");
@@ -3420,6 +3458,7 @@ function pickDXF(){
       state.plan=P; state.hiddenLayers={}; state.satAffine=null;
       $("planEmpty").hidden=true;
       var rec={ id:uuid(), job_id:job.id, name:f.name, text:txt, at:nowISO(), remote:false };
+      state.planRec=rec; state.cornerInfo=countCorners(P, {});
       // Keep one drawing per job on the phone; queue this one for the office.
       idbByJob("plans", job.id).then(function(old){
         old.forEach(function(o){ if(o.id!==rec.id) idbDel("plans", o.id); });
@@ -3446,6 +3485,8 @@ function uploadPendingPlans(){
     return idbGet("plans", id).then(function(rec){
       if(!rec || rec.remote!==false){ setPendingPlans(pendingPlans().filter(function(x){ return x!==id; })); return; }
       var P; try{ P=parseDXF(rec.text); }catch(e){ P=null; }
+      var cnt=P ? countCorners(P, state.job && state.job.id===rec.job_id ? state.hiddenLayers : {}) : null;
+      if(cnt) rec.counted=cnt.corners+"|"+cnt.layers.join(",");
       var path="plans/"+rec.job_id+"/"+rec.id+".dxf";
       return storageUpload(path, new Blob([rec.text],{type:"application/dxf"}), "application/dxf")
         .catch(function(e){ if(!/exist|duplicate/i.test(String(e.message||e))) throw e; })   // already there from a retry
@@ -3454,7 +3495,9 @@ function uploadPendingPlans(){
             headers:{ Prefer:"resolution=ignore-duplicates,return=minimal" },
             body:JSON.stringify({ id:rec.id, job_id:rec.job_id, name:rec.name, dxf_path:path,
               min_x:P?P.bounds.minx:null, min_y:P?P.bounds.miny:null, max_x:P?P.bounds.maxx:null, max_y:P?P.bounds.maxy:null,
-              entity_count:P?P.items.length:null }) });
+              entity_count:P?P.items.length:null,
+              corners:cnt?cnt.corners:null, crossings:cnt?cnt.crossings:null,
+              corner_layers:cnt?cnt.layers:null, counted_at:cnt?nowISO():null }) });
         })
         .then(function(){
           rec.remote=true; return idbPut("plans", rec);
@@ -3581,18 +3624,39 @@ function placeCorners(list, status, type, opts){
 // Lot-line layers are used when the drawing has them (a road or contour layer
 // crossing a lot line is not a corner); otherwise every visible layer.
 var AUTO_MAX=4000;
-function autoLayers(P){
-  var names={}, hidden=state.hiddenLayers||{};
+function autoLayers(P, hidden){
+  var names={}; hidden=hidden||{};
   P.items.forEach(function(o){ if(o.k==="p" && o.nv) names[o.layer]=1; });
   var all=Object.keys(names).filter(function(n){ return !hidden[n]; });
   var looks=/lot|bound|parcel|plot|block|subdiv|survey|line|prop|cadast/i;
   var lots=all.filter(function(n){ return looks.test(n); });
   return lots.length ? lots : all;
 }
+// The job's concrete pillar count: corners on the lot-line layers — every
+// bend, end and crossing. This is what goes to the office as "needed".
+function countCorners(P, hidden){
+  var layers=autoLayers(P, hidden), use={};
+  layers.forEach(function(n){ use[n]=1; });
+  var nodes=planNodes(P, function(l){ return !!use[l]; }, NODE_TOL);
+  return { nodes:nodes, corners:nodes.length, crossings:nodes.crossings||0, layers:layers.slice().sort() };
+}
+// Tell the office how many the drawing needs, once per drawing (and again if
+// the layers counted change). A drawing still waiting to upload carries it.
+function reportCorners(rec, info){
+  if(!rec || !info) return;
+  var sig=info.corners+"|"+info.layers.join(",");
+  if(rec.counted===sig || rec.remote!==true) return;
+  if(!navigator.onLine || !auth.session || auth.dead) return;
+  rest("pillar_plans?id=eq."+rec.id, { method:"PATCH", headers:{ Prefer:"return=minimal" },
+    body:JSON.stringify({ corners:info.corners, crossings:info.crossings, corner_layers:info.layers, counted_at:nowISO() }) })
+    .then(function(){ rec.counted=sig; idbPut("plans", rec); })
+    .catch(function(){ /* tried again next time the drawing is shown */ });
+}
 function autoPlaceNodes(){
   var P=state.plan; if(!P || !state.job) return;
-  var use={}; autoLayers(P).forEach(function(n){ use[n]=1; });
-  var nodes=planNodes(P, function(l){ return !!use[l]; }, NODE_TOL);
+  var info=countCorners(P, state.hiddenLayers);
+  state.cornerInfo=info;
+  var nodes=info.nodes;
   var ids={}; state.points.forEach(function(p){ ids[p.id]=1; });
   var job=state.job.id;
   var fresh=cornersWithoutPillars(nodes, NODE_TOL).filter(function(c){ return !ids[cornerId(job,c[0],c[1])]; });
@@ -3860,7 +3924,10 @@ function layerSheet(){
       row.style.cssText="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line-soft)";
       var c=el("input"); c.type="checkbox"; c.checked=!state.hiddenLayers[n];
       c.style.cssText="width:20px;height:20px";
-      c.onchange=function(){ state.hiddenLayers[n]=!c.checked; requestDraw(); saveUi(); };
+      c.onchange=function(){
+        state.hiddenLayers[n]=!c.checked; requestDraw(); saveUi();
+        if(state.plan){ state.cornerInfo=countCorners(state.plan, state.hiddenLayers); reportCorners(state.planRec, state.cornerInfo); invalidate(); }
+      };
       row.appendChild(c); row.appendChild(el("span",null,n||"(no layer)"));
       b.appendChild(row);
     });
